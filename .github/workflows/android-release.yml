@@ -1,0 +1,130 @@
+name: Android Release
+
+on:
+  push:
+    # 匹配任意 tag（包括包含 / 的 tag）。
+    tags:
+      - '**'
+  workflow_dispatch:
+    inputs:
+      target_tag:
+        description: 要构建或重新发布的 tag
+        required: true
+        type: string
+
+jobs:
+  release:
+    name: Build and publish Android release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Resolve target tag
+        id: vars
+        env:
+          INPUT_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.target_tag || '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            tag="${INPUT_TAG}"
+          else
+            tag="${GITHUB_REF_NAME}"
+          fi
+
+          tag="${tag#refs/tags/}"
+
+          if [[ -z "${tag}" ]]; then
+            echo 'Tag is required.' >&2
+            exit 1
+          fi
+
+          safe_tag="${tag//\//-}"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "safe_tag=${safe_tag}" >> "${GITHUB_OUTPUT}"
+
+      - name: Checkout tagged sources
+        uses: actions/checkout@v5
+        with:
+          ref: refs/tags/${{ steps.vars.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      # 先生成并拷贝 server release 产物，再打 app release。
+      - name: Build embedded server release payload
+        working-directory: easycontrol
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash ./gradlew --no-daemon :server:copyRelease
+
+      - name: Build app release APK
+        working-directory: easycontrol
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash ./gradlew --no-daemon :app:assembleRelease
+
+      - name: Collect release APKs
+        env:
+          SAFE_TAG: ${{ steps.vars.outputs.safe_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          mkdir -p dist
+          app_apks=(easycontrol/app/build/outputs/apk/release/*.apk)
+          server_apks=(easycontrol/server/build/outputs/apk/release/*.apk)
+
+          if (( ${#app_apks[@]} == 0 )); then
+            echo 'No app release APK found.' >&2
+            exit 1
+          fi
+
+          if (( ${#server_apks[@]} == 0 )); then
+            echo 'No server release APK found.' >&2
+            exit 1
+          fi
+
+          for apk in "${app_apks[@]}"; do
+            cp "${apk}" "dist/${SAFE_TAG}-app-$(basename "${apk}")"
+          done
+
+          for apk in "${server_apks[@]}"; do
+            cp "${apk}" "dist/${SAFE_TAG}-server-$(basename "${apk}")"
+          done
+
+          ls -lah dist
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-release-${{ steps.vars.outputs.safe_tag }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish assets to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.vars.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+            gh release upload "${TAG_NAME}" dist/* --clobber
+          else
+            gh release create "${TAG_NAME}" dist/* --title "${TAG_NAME}" --generate-notes --verify-tag
+          fi
