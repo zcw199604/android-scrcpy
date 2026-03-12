@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<top.saymzx.easycontrol.app.client.view.MyViewForSmallView xmlns:android="http://schemas.android.com/apk/res/android"
+<top.zcw.control.app.client.view.MyViewForSmallView xmlns:android="http://schemas.android.com/apk/res/android"
   xmlns:tools="http://schemas.android.com/tools"
   android:layout_width="wrap_content"
   android:layout_height="wrap_content">
@@ -199,4 +199,4 @@
     android:layout_gravity="end|bottom"
     android:focusable="false" />
 
-</top.saymzx.easycontrol.app.client.view.MyViewForSmallView>
+</top.zcw.control.app.client.view.MyViewForSmallView>

@@ -26,13 +26,13 @@ def resolveReleaseApk = {
 }
 
 android {
-  namespace 'top.saymzx.easycontrol.server'
+  namespace 'top.zcw.control.server'
   compileSdk 34
 
   defaultConfig {
     minSdk 21
     targetSdk 34
-    applicationId 'top.saymzx.easycontrol.server'
+    applicationId 'top.zcw.control.server'
     versionCode 20000
     versionName '2.0.0'
   }

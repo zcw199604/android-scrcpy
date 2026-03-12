@@ -75,7 +75,7 @@ def validateReleaseSigningConfig = {
 }
 
 android {
-  namespace 'top.saymzx.easycontrol.app'
+  namespace 'top.zcw.control.app'
   compileSdk 34
 
   defaultConfig {
