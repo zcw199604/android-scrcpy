@@ -16,6 +16,7 @@
   <string name="set_other_custom_key">自定义密钥</string>
   <string name="set_other_reset_key">重置密钥</string>
   <string name="set_other_ip">查看本机IP</string>
+  <string name="set_other_log">查看运行日志</string>
   <string name="set_other_locale">语言切换(中文/English)</string>
   <string name="set_about_website">项目主页</string>
   <string name="set_about_privacy">隐私政策</string>
@@ -24,6 +25,11 @@
   <!-- 查看IP地址页面 -->
   <string name="ip_ipv4">IPv4(点击复制)</string>
   <string name="ip_ipv6">IPv6(点击复制)</string>
+
+  <!-- 查看运行日志页面 -->
+  <string name="log_title">运行日志</string>
+  <string name="log_memory_tip">仅保存在当前应用进程内存中，重启应用后会清空</string>
+  <string name="log_empty">暂无运行日志</string>
 
   <!-- 查看密钥页面 -->
   <string name="adb_key_pub">公钥(Base64编码)</string>

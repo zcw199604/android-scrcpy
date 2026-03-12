@@ -19,6 +19,7 @@ import top.saymzx.easycontrol.app.entity.AppData;
 import top.saymzx.easycontrol.app.entity.Device;
 import top.saymzx.easycontrol.app.helper.DeviceListAdapter;
 import top.saymzx.easycontrol.app.helper.MyBroadcastReceiver;
+import top.saymzx.easycontrol.app.helper.PublicTools;
 import top.saymzx.easycontrol.app.helper.ViewTools;
 
 public class MainActivity extends Activity {
@@ -48,9 +49,14 @@ public class MainActivity extends Activity {
     myBroadcastReceiver.register(this);
     // 重置已连接设备
     myBroadcastReceiver.resetUSB();
+    PublicTools.logInfo("app", "主界面已启动，当前设备配置数: " + AdbTools.devicesList.size());
     // 自启动设备
     AppData.uiHandler.postDelayed(() -> {
-      for (Device device : AdbTools.devicesList) if (device.connectOnStart) Client.startDevice(device);
+      for (Device device : AdbTools.devicesList)
+        if (device.connectOnStart) {
+          PublicTools.logInfo("app", "触发自动连接设备: " + device.name);
+          Client.startDevice(device);
+        }
     }, 2000);
   }
 

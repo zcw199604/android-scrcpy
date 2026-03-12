@@ -9,6 +9,9 @@ import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.view.WindowManager;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+
 import top.saymzx.easycontrol.app.MainActivity;
 import top.saymzx.easycontrol.app.adb.AdbKeyPair;
 import top.saymzx.easycontrol.app.helper.DbHelper;
@@ -19,6 +22,8 @@ public class AppData {
   public static Context applicationContext;
   public static MainActivity mainActivity;
   public static Handler uiHandler;
+  private static final int MAX_RUNTIME_LOG_COUNT = 400;
+  private static final ArrayDeque<String> runtimeLogs = new ArrayDeque<>();
 
   // 数据库工具库
   public static DbHelper dbHelper;
@@ -49,6 +54,26 @@ public class AppData {
     setting = new Setting(applicationContext.getSharedPreferences("setting", Context.MODE_PRIVATE));
     // 读取密钥
     keyPair = PublicTools.readAdbKeyPair();
+  }
+
+  public static void appendRuntimeLog(String logLine) {
+    if (logLine == null || logLine.trim().isEmpty()) return;
+    synchronized (runtimeLogs) {
+      while (runtimeLogs.size() >= MAX_RUNTIME_LOG_COUNT) runtimeLogs.removeFirst();
+      runtimeLogs.addLast(logLine);
+    }
+  }
+
+  public static ArrayList<String> getRuntimeLogs() {
+    synchronized (runtimeLogs) {
+      return new ArrayList<>(runtimeLogs);
+    }
+  }
+
+  public static void clearRuntimeLogs() {
+    synchronized (runtimeLogs) {
+      runtimeLogs.clear();
+    }
   }
 
 }

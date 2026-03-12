@@ -18,8 +18,11 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Enumeration;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +35,7 @@ import top.saymzx.easycontrol.app.adb.AdbKeyPair;
 import top.saymzx.easycontrol.app.entity.AppData;
 
 public class PublicTools {
+  private static final int MAX_SINGLE_LOG_LENGTH = 2000;
 
   // DP转PX
   public static int dp2px(Float dp) {
@@ -119,10 +123,64 @@ public class PublicTools {
     }
   }
 
-  // 日志
+  // 记录运行信息
+  public static void logInfo(String type, String msg) {
+    logInternal(Log.INFO, type, msg, false);
+  }
+
+  // 错误日志
   public static void logToast(String type, String msg, boolean showToast) {
-    Log.e("Easycontrol_" + type, msg);
-    if (showToast) AppData.uiHandler.post(() -> Toast.makeText(AppData.applicationContext, type + ":" + msg, Toast.LENGTH_SHORT).show());
+    logInternal(Log.ERROR, type, msg, showToast);
+  }
+
+  // 获取运行日志文本（按新到旧展示）
+  public static String getRuntimeLogText() {
+    ArrayList<String> logs = AppData.getRuntimeLogs();
+    if (logs.isEmpty()) return "";
+    StringBuilder builder = new StringBuilder();
+    for (int i = logs.size() - 1; i >= 0; i--) {
+      builder.append(logs.get(i));
+      if (i > 0) builder.append("\n\n");
+    }
+    return builder.toString();
+  }
+
+  private static void logInternal(int priority, String type, String msg, boolean showToast) {
+    String safeType = sanitizeLogField(type, "app");
+    String safeMsg = sanitizeLogMessage(msg);
+    AppData.appendRuntimeLog(formatLog(priority, safeType, safeMsg));
+    Log.println(priority, "Easycontrol_" + safeType, safeMsg);
+    if (showToast && AppData.uiHandler != null && AppData.applicationContext != null)
+      AppData.uiHandler.post(() -> Toast.makeText(AppData.applicationContext, safeType + ":" + safeMsg, Toast.LENGTH_SHORT).show());
+  }
+
+  private static String formatLog(int priority, String type, String msg) {
+    return "[" + buildLogTime() + "] [" + priorityToLabel(priority) + "] [" + type + "] " + msg;
+  }
+
+  private static String buildLogTime() {
+    return new SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(new Date());
+  }
+
+  private static String priorityToLabel(int priority) {
+    if (priority == Log.ERROR) return "ERROR";
+    if (priority == Log.WARN) return "WARN";
+    if (priority == Log.DEBUG) return "DEBUG";
+    return "INFO";
+  }
+
+  private static String sanitizeLogField(String value, String fallback) {
+    if (value == null) return fallback;
+    String result = value.replace("\n", " ").replace("\r", " ").trim();
+    return result.isEmpty() ? fallback : result;
+  }
+
+  private static String sanitizeLogMessage(String message) {
+    if (message == null) return "(empty)";
+    String result = message.replace("\n", " ").replace("\r", " ").trim();
+    if (result.isEmpty()) return "(empty)";
+    if (result.length() > MAX_SINGLE_LOG_LENGTH) return result.substring(0, MAX_SINGLE_LOG_LENGTH) + "...(truncated)";
+    return result;
   }
 
   // 获取密钥文件

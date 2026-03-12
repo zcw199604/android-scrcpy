@@ -16,6 +16,7 @@
   <string name="set_other_custom_key">Custom ADB key</string>
   <string name="set_other_reset_key">Reset ADB key</string>
   <string name="set_other_ip">IP addresses</string>
+  <string name="set_other_log">Runtime logs</string>
   <string name="set_other_locale">Change language(中文/English)</string>
   <string name="set_about_website">Homepage</string>
   <string name="set_about_privacy">Privacy Policy</string>
@@ -24,6 +25,11 @@
   <!-- 查看IP地址页面 -->
   <string name="ip_ipv4">IPv4(Touch to copy)</string>
   <string name="ip_ipv6">IPv6(Touch to copy)</string>
+
+  <!-- 查看运行日志页面 -->
+  <string name="log_title">Runtime logs</string>
+  <string name="log_memory_tip">Stored in process memory only and cleared after the app restarts</string>
+  <string name="log_empty">No runtime logs yet</string>
 
   <!-- 查看密钥页面 -->
   <string name="adb_key_pub">Public key (Base64)</string>

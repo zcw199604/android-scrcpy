@@ -38,6 +38,7 @@ public class Client {
     // 连接
     clientStream = new ClientStream(device, bool -> {
       if (bool) {
+        PublicTools.logInfo("client", "设备连接成功: " + device.name);
         allClient.put(device.uuid, this);
         // 控制器、播放器
         clientController = new ClientController(device, clientStream, () -> clientPlayer = new ClientPlayer(device.uuid, clientStream));
@@ -49,13 +50,18 @@ public class Client {
         if (device.customResolutionOnConnect) clientController.handleAction("writeByteBuffer", ControlPacket.createChangeResolutionEvent(device.customResolutionWidth, device.customResolutionHeight), 0);
         if (!isTempDevice && device.wakeOnConnect) clientController.handleAction("buttonWake", null, 0);
         if (!isTempDevice && device.lightOffOnConnect) clientController.handleAction("buttonLightOff", null, 2000);
-      }
+      } else PublicTools.logInfo("client", "设备连接未完成: " + device.name);
       if (loading.second.isShowing()) loading.second.cancel();
     });
   }
 
   public static void startDevice(Device device) {
     if (device == null) return;
+    if (allClient.containsKey(device.uuid)) {
+      PublicTools.logInfo("client", "忽略重复启动请求: " + device.name);
+      return;
+    }
+    PublicTools.logInfo("client", "开始连接设备: " + device.name);
     new Client(device);
   }
 
@@ -104,9 +110,14 @@ public class Client {
     if (clientStream != null) clientStream.close();
     // 如果设置了自动重连
     if (byteBuffer != null) {
-      PublicTools.logToast("Client", normalizeCloseMessage(byteBuffer), true);
-      if (device.reconnectOnClose) startDevice(device);
-    }
+      String closeMessage = normalizeCloseMessage(byteBuffer);
+      PublicTools.logInfo("client", "设备连接已断开: " + device.name + " - " + closeMessage);
+      PublicTools.logToast("Client", closeMessage, true);
+      if (device.reconnectOnClose) {
+        PublicTools.logInfo("client", "准备自动重连设备: " + device.name);
+        startDevice(device);
+      }
+    } else PublicTools.logInfo("client", "设备会话已关闭: " + device.name);
   }
 
   private String normalizeCloseMessage(ByteBuffer byteBuffer) {

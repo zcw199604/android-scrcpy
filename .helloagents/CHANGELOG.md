@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### 新增
+- **[easycontrol_app]**: 新增应用内“查看运行日志”界面，并将主界面启动、ADB 建连、server 启动、数据通道建立、断开与自动重连等关键运行日志保存在进程内存中 — by zcw
+  - 方案: [202603121200_runtime-log-view](archive/2026-03/202603121200_runtime-log-view/)
+  - 验证: `./gradlew :app:assembleDebug` 已通过
+
 ### 开发环境
 - **[repository_docs]**: 在仓库内安装本地 Temurin JDK 17（`.local-jdks/jdk-17`）与 Android SDK（`.android-sdk`），并让 `easycontrol/gradlew` / `easycontrol/local.properties` 自动指向仓库内构建环境 — by zcw
   - 结果: `./gradlew -version`、`./gradlew :server:compileDebugJavaWithJavac`、`./gradlew :app:assembleDebug` 已验证成功
@@ -62,4 +67,4 @@
 ## 基线版本
 - `easycontrol/app`: `versionCode 10507` / `versionName 1.5.7`
 - `easycontrol/server`: `versionCode 20000` / `versionName 2.0.0`
-- 当前知识库已累计归档 9 个 HelloAGENTS 方案包（见 `archive/_index.md`）。
+- 当前知识库已累计归档 10 个 HelloAGENTS 方案包（见 `archive/_index.md`）。

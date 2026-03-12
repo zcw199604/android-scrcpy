@@ -29,6 +29,7 @@ public class SetActivity extends Activity {
   private void drawUi() {
     // 其他
     activitySetBinding.setOther.addView(ViewTools.createTextCard(this, getString(R.string.set_other_ip), () -> startActivity(new Intent(this, IpActivity.class))).getRoot());
+    activitySetBinding.setOther.addView(ViewTools.createTextCard(this, getString(R.string.set_other_log), () -> startActivity(new Intent(this, LogActivity.class))).getRoot());
     activitySetBinding.setOther.addView(ViewTools.createTextCard(this, getString(R.string.set_other_custom_key), () -> startActivity(new Intent(this, AdbKeyActivity.class))).getRoot());
     activitySetBinding.setOther.addView(ViewTools.createTextCard(this, getString(R.string.set_other_reset_key), () -> {
       AppData.keyPair = PublicTools.reGenerateAdbKeyPair();

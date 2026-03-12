@@ -11,8 +11,9 @@ Android 主控端应用模块，负责设备列表管理、USB/网络 ADB 连接
 |----------|------|--------|------|
 | `MainActivity.onCreate(Bundle)` | `savedInstanceState` | `void` | 初始化 `AppData`、设备列表、广播监听与启动时自动连接逻辑，不再跳转激活页。 |
 | `UsbActivity.onCreate(Bundle)` | `savedInstanceState` | `void` | USB 附加入口，直接启动主界面或发送 USB 更新广播。 |
-| `Client.startDevice(Device)` | `device` | `void` | 创建并启动单个设备会话。 |
+| `Client.startDevice(Device)` | `device` | `void` | 创建并启动单个设备会话，并记录运行阶段日志。 |
 | `Client.sendAction(String, String, ByteBuffer, int)` | `uuid`, `action`, `byteBuffer`, `delay` | `void` | 向已建立的客户端会话发送控制动作。 |
+| `LogActivity.onResume()` | 无 | `void` | 刷新并展示当前进程内存中的运行日志。 |
 | `AdbTools.connectADB(Device)` | `device` | `Adb` | 为 USB/网络设备建立或复用 ADB 连接。 |
 | `DbHelper.getAll()` | 无 | `ArrayList<Device>` | 读取已保存的设备配置列表。 |
 
@@ -45,6 +46,11 @@ Android 主控端应用模块，负责设备列表管理、USB/网络 ADB 连接
 **行为**: `DbHelper` 通过 SQLite 表 `DevicesDb` 保存设备配置；`Setting` 通过 `SharedPreferences` 保存语言、本地 UUID 等应用级开关。
 **结果**: 设备和应用设置在下次启动时可恢复。
 
+### 运行日志查看
+**条件**: 用户在设置页点击“查看运行日志”。
+**行为**: `LogActivity` 从 `AppData` 的进程内日志缓冲区读取最近日志，并展示主界面启动、ADB 建连、server 启动、数据通道建立、断开与自动重连等关键节点。
+**结果**: 用户无需连接 Logcat，即可在应用内查看最近运行日志；日志仅保存在当前进程内存中，重启应用后会清空。
+
 ## 依赖关系
 
 ```yaml
@@ -59,6 +65,7 @@ Android 主控端应用模块，负责设备列表管理、USB/网络 ADB 连接
 - `ControlPacket` 继续维持现有 1-9 控制协议格式，仅把协议常量与 main socket 事件常量显式化，便于与 server 侧对齐审计。
 - `ClientPlayer` 已改为复用统一事件常量解析 main socket 音频/剪贴板/视频尺寸事件；`VideoDecode` 与 `AudioDecode` 经静态审计后无需同步改动。
 - `ClientStream` / `Adb` 现已按“ADB 建连 / 调试授权 / server 连接 / 超时”阶段输出更明确的用户可见提示，不再直接展示 `java.lang.Exception` 文本。
+- 设置页在“查看本机IP”下方新增“查看运行日志”入口；`PublicTools` 会把关键运行日志同时写入 Logcat 与进程内缓冲，`LogActivity` 可直接查看最近启动/连接/断开日志。
 - 控制通道后台 `keepAlive` 失败导致断开时，客户端现仅提示“连接断开”，不再把内部动作名 `keepAlive` 暴露给用户。
 - 网络设备的“连接时操作”现新增“强制走 ADB 转发”开关；启用后会跳过 direct socket，直接通过 ADB forward 建立 main/video 双通道，便于规避部分无线局域网直连不稳定问题。
 

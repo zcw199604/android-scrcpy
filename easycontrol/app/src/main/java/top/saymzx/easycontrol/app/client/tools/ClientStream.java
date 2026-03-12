@@ -42,6 +42,7 @@ public class ClientStream {
 
   private boolean isClose = false;
   private boolean connectDirect = false;
+  private final Device device;
   private Adb adb;
   private Socket mainSocket;
   private Socket videoSocket;
@@ -60,22 +61,32 @@ public class ClientStream {
   private static final int timeoutDelay = 1000 * 15;
 
   public ClientStream(Device device, MyInterface.MyFunctionBoolean handle) {
+    this.device = device;
+    PublicTools.logInfo("stream", device.name + " 开始建立连接");
     Thread timeOutThread = new Thread(() -> {
       try {
         Thread.sleep(timeoutDelay);
-        if (notifyConnectResult(handle, false)) showConnectToast(AppData.applicationContext.getString(R.string.toast_connect_timeout_detail));
+        if (notifyConnectResult(handle, false)) {
+          PublicTools.logInfo("stream", device.name + " 连接超时");
+          showConnectToast(AppData.applicationContext.getString(R.string.toast_connect_timeout_detail));
+        }
         if (connectThread != null) connectThread.interrupt();
       } catch (InterruptedException ignored) {
       }
     });
     connectThread = new Thread(() -> {
       try {
+        PublicTools.logInfo("stream", device.name + " 正在连接 ADB");
         adb = AdbTools.connectADB(device);
+        PublicTools.logInfo("stream", device.name + " ADB 连接成功");
         startServer(device);
+        PublicTools.logInfo("stream", device.name + " 被控端服务已启动");
         connectServer(device);
+        PublicTools.logInfo("stream", device.name + " 数据通道已建立（" + (connectDirect ? "直连" : "ADB forward") + "）");
         notifyConnectResult(handle, true);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
+        PublicTools.logInfo("stream", device.name + " 连接线程被中断");
         notifyConnectResult(handle, false);
       } catch (Exception e) {
         if (notifyConnectResult(handle, false)) showConnectError(device, e);
@@ -96,8 +107,10 @@ public class ClientStream {
   }
 
   private void showConnectError(Device device, Exception e) {
+    String userMessage = buildUserMessage(device, e);
     PublicTools.logToast("stream", buildDebugMessage(device, e), false);
-    showConnectToast(buildUserMessage(device, e));
+    PublicTools.logInfo("stream", device.name + " 连接失败: " + userMessage);
+    showConnectToast(userMessage);
   }
 
   private void showConnectToast(String message) {
@@ -170,6 +183,7 @@ public class ClientStream {
   // 启动Server
   private void startServer(Device device) throws Exception {
     if (BuildConfig.ENABLE_DEBUG_FEATURE || !adb.runAdbCmd("ls /data/local/tmp/easycontrol_*").contains(serverName)) {
+      PublicTools.logInfo("stream", device.name + " 正在同步被控端服务文件");
       adb.runAdbCmd("rm /data/local/tmp/easycontrol_* ");
       adb.pushFile(AppData.applicationContext.getResources().openRawResource(R.raw.easycontrol_server), serverName, null);
     }
@@ -211,6 +225,7 @@ public class ClientStream {
           mainDataInputStream = new DataInputStream(mainSocket.getInputStream());
           videoDataInputStream = new DataInputStream(videoSocket.getInputStream());
           connectDirect = true;
+          PublicTools.logInfo("stream", device.name + " 已通过直连建立数据通道");
           return;
         } catch (Exception e) {
           directException = e;
@@ -220,11 +235,13 @@ public class ClientStream {
           else Thread.sleep(reTryTime);
         }
       }
+      if (directException != null) PublicTools.logInfo("stream", device.name + " 直连未成功，回退到 ADB forward");
     }
     for (int i = 0; i < reTry; i++) {
       try {
         if (mainBufferStream == null) mainBufferStream = adb.tcpForward(device.serverPort);
         if (videoBufferStream == null) videoBufferStream = adb.tcpForward(device.serverPort);
+        PublicTools.logInfo("stream", device.name + " 已通过 ADB forward 建立数据通道");
         return;
       } catch (Exception e) {
         forwardException = e;
@@ -294,7 +311,11 @@ public class ClientStream {
   public void close() {
     if (isClose) return;
     isClose = true;
-    if (shell != null) PublicTools.logToast("server", new String(shell.readByteArrayBeforeClose().array()), false);
+    PublicTools.logInfo("stream", device.name + " 开始释放连接资源");
+    if (shell != null) {
+      String shellOutput = new String(shell.readByteArrayBeforeClose().array()).trim();
+      if (!shellOutput.isEmpty()) PublicTools.logToast("server", shellOutput, false);
+    }
     if (connectDirect) {
       try {
         mainOutputStream.close();
