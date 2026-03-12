@@ -14,7 +14,7 @@ import top.saymzx.easycontrol.app.entity.Device;
 public class DbHelper extends SQLiteOpenHelper {
 
   private static final String dataBaseName = "app.db";
-  private static final int version = 23;
+  private static final int version = 24;
   private final String tableName = "DevicesDb";
 
   public DbHelper(Context context) {
@@ -44,6 +44,7 @@ public class DbHelper extends SQLiteOpenHelper {
     stringBuilder.append("lightOffOnConnect integer,");
     stringBuilder.append("showNavBarOnConnect integer,");
     stringBuilder.append("changeToFullOnConnect integer,");
+    stringBuilder.append("forceAdbForwardOnConnect integer,");
     stringBuilder.append("keepWakeOnRunning integer,");
     stringBuilder.append("changeResolutionOnRunning integer,");
     stringBuilder.append("smallToMiniOnRunning integer,");
@@ -141,6 +142,7 @@ public class DbHelper extends SQLiteOpenHelper {
     values.put("lightOffOnConnect", device.lightOffOnConnect ? 1 : 0);
     values.put("showNavBarOnConnect", device.showNavBarOnConnect ? 1 : 0);
     values.put("changeToFullOnConnect", device.changeToFullOnConnect ? 1 : 0);
+    values.put("forceAdbForwardOnConnect", device.forceAdbForwardOnConnect ? 1 : 0);
     values.put("keepWakeOnRunning", device.keepWakeOnRunning ? 1 : 0);
     values.put("changeResolutionOnRunning", device.changeResolutionOnRunning ? 1 : 0);
     values.put("smallToMiniOnRunning", device.smallToMiniOnRunning ? 1 : 0);
@@ -232,6 +234,10 @@ public class DbHelper extends SQLiteOpenHelper {
         }
         case "changeToFullOnConnect": {
           device.changeToFullOnConnect = cursor.getInt(i) == 1;
+          break;
+        }
+        case "forceAdbForwardOnConnect": {
+          device.forceAdbForwardOnConnect = cursor.getInt(i) == 1;
           break;
         }
         case "keepWakeOnRunning": {

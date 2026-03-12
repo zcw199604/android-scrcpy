@@ -6,6 +6,7 @@
 
 | 时间戳 | 名称 | 类型 | 涉及模块 | 决策 | 结果 |
 |--------|------|------|---------|------|------|
+| 202603121142 | force-adb-forward-connect | implementation | easycontrol_app, repository_docs | force-adb-forward-connect#D001 | ✅完成 |
 | 202603120724 | scrcpy-v334-official-sync | implementation | easycontrol_server, easycontrol_app, repository_docs | scrcpy-v334-official-sync#D001 | ⚠️部分完成 |
 | 202603120206 | publish-v0-2-tag | implementation | repository_docs | publish-v0-2-tag#D001 | ✅完成 |
 | 202603120131 | commit-release-signing-fix | implementation | repository_docs | commit-release-signing-fix#D001 | ✅完成 |
@@ -18,6 +19,7 @@
 ## 按月归档
 
 ### 2026-03
+- [202603121142_force-adb-forward-connect](./2026-03/202603121142_force-adb-forward-connect/) - 为网络设备新增“强制走 ADB forward”连接时配置项，跳过 direct socket 直连
 - [202603120724_scrcpy-v334-official-sync](./2026-03/202603120724_scrcpy-v334-official-sync/) - 同步 scrcpy v3.3.4 兼容层与构建链路，保留 Easycontrol 现有 app_process / 双 socket / ControlPacket / raw 打包契约
 - [202603120206_publish-v0-2-tag](./2026-03/202603120206_publish-v0-2-tag/) - 将归档补充提交推送到 origin/main，并创建发布标签 v0.2
 - [202603120131_commit-release-signing-fix](./2026-03/202603120131_commit-release-signing-fix/) - 将当前未提交的 release 签名修复与归档内容一次性创建为本地提交

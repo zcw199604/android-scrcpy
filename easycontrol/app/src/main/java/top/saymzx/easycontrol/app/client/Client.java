@@ -4,9 +4,11 @@ import android.app.Dialog;
 import android.util.Pair;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Objects;
 
+import top.saymzx.easycontrol.app.R;
 import top.saymzx.easycontrol.app.client.tools.AdbTools;
 import top.saymzx.easycontrol.app.client.tools.ClientController;
 import top.saymzx.easycontrol.app.client.tools.ClientPlayer;
@@ -102,9 +104,16 @@ public class Client {
     if (clientStream != null) clientStream.close();
     // 如果设置了自动重连
     if (byteBuffer != null) {
-      PublicTools.logToast("Client", new String(byteBuffer.array()), true);
+      PublicTools.logToast("Client", normalizeCloseMessage(byteBuffer), true);
       if (device.reconnectOnClose) startDevice(device);
     }
+  }
+
+  private String normalizeCloseMessage(ByteBuffer byteBuffer) {
+    String rawMessage = new String(byteBuffer.array(), StandardCharsets.UTF_8).trim();
+    String streamClosed = AppData.applicationContext.getString(R.string.toast_stream_closed);
+    if (rawMessage.startsWith("controller:")) return streamClosed;
+    return rawMessage;
   }
 
 }

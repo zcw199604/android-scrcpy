@@ -17,6 +17,9 @@
 ### 交互优化
 - **[easycontrol_app]**: 补充连接失败场景的用户可见错误提示，区分 ADB 未连通、调试未授权、USB 通道异常、被控端服务连接失败与超时 — by zcw
   - 验证: `./gradlew :app:compileDebugJavaWithJavac :app:mergeDebugResources`、`./gradlew :app:assembleDebug` 已通过
+### 连接策略
+- **[easycontrol_app]**: 为网络设备新增“强制走 ADB forward”连接时配置项，允许跳过 direct socket 直连，直接使用 ADB 转发建立投屏通道 — by zcw
+  - 验证: `./gradlew :app:assembleDebug` 已通过
 ### 新增
 - **[knowledge-base]**: 初始化 HelloAGENTS 项目知识库（入口、上下文、模块索引、归档索引） — by zcw
   - 方案: 无（通过 `~init` 初始化）
@@ -59,4 +62,4 @@
 ## 基线版本
 - `easycontrol/app`: `versionCode 10507` / `versionName 1.5.7`
 - `easycontrol/server`: `versionCode 20000` / `versionName 2.0.0`
-- 当前知识库已累计归档 8 个 HelloAGENTS 方案包（见 `archive/_index.md`）。
+- 当前知识库已累计归档 9 个 HelloAGENTS 方案包（见 `archive/_index.md`）。

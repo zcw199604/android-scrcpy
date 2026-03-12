@@ -53,6 +53,8 @@
   <string name="device_show_nav_bar_on_connect_detail">设置小窗和全屏模式默认是否显示导航栏</string>
   <string name="device_change_to_full_on_connect">默认全屏启动</string>
   <string name="device_change_to_full_on_connect_detail">开启后在连接成功后直接进入全屏状态</string>
+  <string name="device_force_adb_forward_on_connect">网络设备强制走 ADB 转发</string>
+  <string name="device_force_adb_forward_on_connect_detail">跳过直连被控端端口，连接时直接使用 ADB forward，可降低无线网络直连不稳定导致的断开</string>
 
   <string name="device_on_running">运行时操作</string>
   <string name="device_keep_wake_on_running">被控端保持唤醒</string>

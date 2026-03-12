@@ -24,6 +24,7 @@ public class Device {
   public boolean lightOffOnConnect = false;
   public boolean showNavBarOnConnect = true;
   public boolean changeToFullOnConnect = false;
+  public boolean forceAdbForwardOnConnect = false;
   public boolean keepWakeOnRunning = true;
   public boolean changeResolutionOnRunning = false;
   public boolean smallToMiniOnRunning = false;
@@ -79,6 +80,7 @@ public class Device {
     newDevice.lightOffOnConnect = lightOffOnConnect;
     newDevice.showNavBarOnConnect = showNavBarOnConnect;
     newDevice.changeToFullOnConnect = changeToFullOnConnect;
+    newDevice.forceAdbForwardOnConnect = forceAdbForwardOnConnect;
     newDevice.keepWakeOnRunning = keepWakeOnRunning;
     newDevice.changeResolutionOnRunning = changeResolutionOnRunning;
     newDevice.smallToMiniOnRunning = smallToMiniOnRunning;

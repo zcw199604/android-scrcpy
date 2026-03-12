@@ -194,7 +194,7 @@ public class ClientStream {
     int reTryTime = timeoutDelay / reTry;
     Exception directException = null;
     Exception forwardException = null;
-    if (!device.isLinkDevice()) {
+    if (!device.isLinkDevice() && !device.forceAdbForwardOnConnect) {
       long startTime = System.currentTimeMillis();
       boolean mainConn = false;
       InetSocketAddress inetSocketAddress = new InetSocketAddress(PublicTools.getIp(device.address), device.serverPort);

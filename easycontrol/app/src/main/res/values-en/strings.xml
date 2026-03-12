@@ -53,6 +53,8 @@
   <string name="device_show_nav_bar_on_connect_detail">Bottom navbar display control</string>
   <string name="device_change_to_full_on_connect">Fullscreen mode</string>
   <string name="device_change_to_full_on_connect_detail">When connected,enter fullscreen mode</string>
+  <string name="device_force_adb_forward_on_connect">Force ADB forward for network devices</string>
+  <string name="device_force_adb_forward_on_connect_detail">Skip the direct server-port socket and use ADB forward immediately to reduce disconnects caused by unstable wireless direct links</string>
 
   <string name="device_on_running">Set action on running</string>
   <string name="device_keep_wake_on_running">Keep remote device unlocked</string>
