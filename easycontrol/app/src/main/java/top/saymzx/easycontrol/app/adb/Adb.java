@@ -29,7 +29,7 @@ public class Adb {
   }
 
   public Adb(UsbDevice usbDevice, AdbKeyPair keyPair) throws Exception {
-    if (usbDevice == null) throw new IOException("no usb connect");
+    if (usbDevice == null) throw new IOException("ADB_USB_DEVICE_MISSING");
     channel = new UsbChannel(usbDevice);
     connect(keyPair);
   }
@@ -44,11 +44,15 @@ public class Adb {
       if (message.command == AdbProtocol.CMD_AUTH) {
         channel.write(AdbProtocol.generateAuth(AdbProtocol.AUTH_TYPE_RSA_PUBLIC, keyPair.publicKeyBytes));
         message = AdbProtocol.AdbMessage.parseAdbMessage(channel);
+        if (message.command == AdbProtocol.CMD_AUTH) {
+          channel.close();
+          throw new Exception("ADB_AUTH_FAILED");
+        }
       }
     }
     if (message.command != AdbProtocol.CMD_CNXN) {
       channel.close();
-      throw new Exception("ADB连接失败");
+      throw new Exception("ADB_CONNECT_FAILED");
     }
     MAX_DATA = message.arg1;
     // 启动后台进程

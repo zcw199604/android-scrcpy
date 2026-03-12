@@ -36,8 +36,8 @@
 
 ### 打包到主控端应用
 **条件**: 执行 `server` 模块的 `copyRelease` 或 `copyDebug` 任务。
-**行为**: `copyDebug` 直接复制 debug APK；`copyRelease` 会先执行 `assembleRelease`，再在任务执行阶段解析 signed/unsigned release APK，并复制重命名为 `app/src/main/res/raw/easycontrol_server.jar`。
-**结果**: 主控端 APK 可携带并分发 server 载荷。
+**行为**: `copyDebug` 直接复制 debug APK；`copyRelease` 会先执行 `assembleRelease`，再在任务执行阶段解析 signed/unsigned release APK，并复制重命名为 `app/src/main/res/raw/easycontrol_server.jar`；`app` 模块的 `preDebugBuild` / `preReleaseBuild` 已显式依赖对应 copy 任务。
+**结果**: 主控端 APK 可继续以内嵌 `R.raw.easycontrol_server` 的方式分发 server 载荷，并避免 AGP 8.2 的隐式依赖校验错误。
 
 ## 依赖关系
 
@@ -45,3 +45,18 @@
 依赖: repository_docs
 被依赖: easycontrol_app
 ```
+
+## 近期实现快照（2026-03-12）
+
+### scrcpy v3.3.4 兼容同步
+- 已在不改变 `Server.main()` 静态入口、双 socket 拓扑和 `ControlPacket` 既有协议编号的前提下，对齐 scrcpy v3.3.4 的系统兼容思路。
+- 已同步的 server 侧重点包括：
+  - `Options` / `Server`：参数常量化、`listenClip` / `listenerClip` 兼容、释放与超时清理增强
+  - `FakeContext` / `ClipboardManager`：framework clipboard 优先 + 旧 `IClipboard` 反射兜底
+  - `InputManager` / `WindowManager` / `SurfaceControl` / `DisplayManager` / `DisplayInfo`：新版显示、旋转、电源、IME 与 Android 14+ physical display 兼容能力
+  - `Device` / `Pointer` / `PointersState`：多指顺序与 localId 分离，保持现有触控协议不变
+  - `VideoEncode` / `AudioEncode` / `AudioCapture`：重配释放、真实音频读取长度、时间戳与缓冲区大小修正
+
+### 当前阻断
+- 仓库内 JDK 17 + Android SDK 已补齐，`./gradlew :server:compileDebugJavaWithJavac`、`./gradlew :server:assembleDebug :server:copyDebug :app:assembleDebug` 与 `./gradlew :app:assembleDebug` 均已通过。
+- 真机回归（投屏、触控、音频、剪贴板、分辨率切换、旋转、背光、电源控制）待有设备环境后补齐。

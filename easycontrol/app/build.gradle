@@ -135,6 +135,19 @@ android {
 dependencies {
 }
 
+def serverProject = project(":server")
+
+def wireServerJarDependency = { String taskName, String copyTaskName ->
+  tasks.matching { task -> task.name == taskName }.configureEach {
+    dependsOn(serverProject.tasks.named(copyTaskName))
+  }
+}
+
+gradle.projectsEvaluated {
+  wireServerJarDependency("preDebugBuild", "copyDebug")
+  wireServerJarDependency("preReleaseBuild", "copyRelease")
+}
+
 gradle.taskGraph.whenReady { taskGraph ->
   def hasAppReleaseTask = taskGraph.allTasks.any { task ->
     task.project == project && task.name.toLowerCase().contains('release')

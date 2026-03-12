@@ -116,6 +116,11 @@ esac
 
 CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
 
+# 优先使用仓库内安装的本地 JDK，避免依赖系统 JAVA_HOME。
+LOCAL_JAVA_HOME=$APP_HOME/../.local-jdks/current
+if [ -z "$JAVA_HOME" ] && [ -x "$LOCAL_JAVA_HOME/bin/java" ] ; then
+    JAVA_HOME=$LOCAL_JAVA_HOME
+fi
 
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then

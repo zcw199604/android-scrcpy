@@ -51,3 +51,14 @@ Android 主控端应用模块，负责设备列表管理、USB/网络 ADB 连接
 依赖: easycontrol_server, repository_docs
 被依赖: 无（仓库主入口模块）
 ```
+
+## 近期实现快照（2026-03-12）
+
+### scrcpy v3.3.4 同步后的 app 侧边界
+- `ClientStream` 继续维持 `app_process -Djava.class.path=... top.saymzx.easycontrol.server.Server` 的启动形式，并保持发送 `listenClip` 参数键。
+- `ControlPacket` 继续维持现有 1-9 控制协议格式，仅把协议常量与 main socket 事件常量显式化，便于与 server 侧对齐审计。
+- `ClientPlayer` 已改为复用统一事件常量解析 main socket 音频/剪贴板/视频尺寸事件；`VideoDecode` 与 `AudioDecode` 经静态审计后无需同步改动。
+- `ClientStream` / `Adb` 现已按“ADB 建连 / 调试授权 / server 连接 / 超时”阶段输出更明确的用户可见提示，不再直接展示 `java.lang.Exception` 文本。
+
+### 当前阻断
+- 仓库内 JDK 17 + Android SDK 已补齐，`./gradlew :app:assembleDebug` 已可自动触发 `:server:copyDebug` 并完成联合构建；当前剩余阻断是真机播放/控制回归环境不足。

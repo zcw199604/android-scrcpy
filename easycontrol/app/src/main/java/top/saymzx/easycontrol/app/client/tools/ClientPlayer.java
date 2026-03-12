@@ -21,9 +21,6 @@ public class ClientPlayer {
   private final Thread videoStreamInThread = new Thread(this::videoStreamIn);
   private Handler playHandler = null;
   private final HandlerThread playHandlerThread = new HandlerThread("easycontrol_play", Thread.MAX_PRIORITY);
-  private static final int AUDIO_EVENT = 1;
-  private static final int CLIPBOARD_EVENT = 2;
-  private static final int CHANGE_SIZE_EVENT = 3;
 
   public ClientPlayer(String uuid, ClientStream clientStream) {
     clientController = Client.getClientController(uuid);
@@ -42,19 +39,20 @@ public class ClientPlayer {
     boolean useOpus = true;
     try {
       if (clientStream.readByteFromMain() == 1) useOpus = clientStream.readByteFromMain() == 1;
-      // 循环处理报文
       while (!Thread.interrupted()) {
         switch (clientStream.readByteFromMain()) {
-          case AUDIO_EVENT:
+          case ControlPacket.EVENT_AUDIO:
             ByteBuffer audioFrame = clientStream.readFrameFromMain();
             if (audioDecode != null) audioDecode.decodeIn(audioFrame);
             else audioDecode = new AudioDecode(useOpus, audioFrame, playHandler);
             break;
-          case CLIPBOARD_EVENT:
+          case ControlPacket.EVENT_CLIPBOARD:
             clientController.handleAction("setClipBoard", clientStream.readByteArrayFromMain(clientStream.readIntFromMain()), 0);
             break;
-          case CHANGE_SIZE_EVENT:
+          case ControlPacket.EVENT_VIDEO_SIZE:
             clientController.handleAction("updateVideoSize", clientStream.readByteArrayFromMain(8), 0);
+            break;
+          default:
             break;
         }
       }

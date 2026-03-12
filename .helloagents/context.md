@@ -82,8 +82,8 @@
 | 约束 | 原因 | 来源 |
 |------|------|------|
 | `server` 模块产物需要通过 `:server:copyDebug` 或 `:server:copyRelease` 先复制为 `app/src/main/res/raw/easycontrol_server.jar` | Android 主控端依赖内嵌 server 载荷运行被控端逻辑，`ClientStream` 会读取 `R.raw.easycontrol_server` | `easycontrol/server/build.gradle`, `easycontrol/app/src/main/java/.../ClientStream.java` |
-| 当前执行环境未提供 Java / Android SDK，且 `bash ./gradlew :server:copyDebug` 已在 Gradle Wrapper 启动前失败 | `JAVA_HOME` 未设置且 PATH 中不存在 `java`，无法进入 Android 构建阶段 | 本次任务执行环境检测，`easycontrol/gradlew` |
-| `app` 与 `server` 之间没有显式 Gradle 模块依赖来自动生成 raw 资源 | 本地构建时需先执行 `:server:copyDebug` 或 `:server:copyRelease`，再打包 `app` | `easycontrol/server/build.gradle`, `ClientStream.java` |
+| 当前执行环境已在仓库内补齐本地 JDK 17 与 Android SDK | `easycontrol/gradlew` 会自动回退到 `.local-jdks/current`，`easycontrol/local.properties` 已固定 `sdk.dir=/mnt/android-scrcpy/.android-sdk`，当前 `:server:compileDebugJavaWithJavac` 与 `:app:assembleDebug` 已可执行 | 本次任务执行环境检测，`easycontrol/gradlew`, `easycontrol/local.properties`, `./gradlew :server:compileDebugJavaWithJavac`, `./gradlew :app:assembleDebug` |
+| `app` 与 `server` 仍通过复制 raw 资源共享内嵌 server 载荷 | `app` 模块已在 `preDebugBuild` / `preReleaseBuild` 显式依赖 `:server:copyDebug` / `:server:copyRelease`，从而保留 `R.raw.easycontrol_server` 打包方式并修复 AGP 8.2 的隐式依赖校验 | `easycontrol/app/build.gradle`, `easycontrol/server/build.gradle`, `ClientStream.java` |
 | GitHub tag release 发布链路需要沿用 release 构建顺序并提供签名配置 | 发布场景应先执行 `:server:copyRelease`，再执行 `:app:assembleRelease`；`app` release 需通过 `EC_RELEASE_*` 参数完成签名，workflow 对应依赖 GitHub Secrets，且 GitHub Release 只公开发布 app APK | `.github/workflows/android-release.yml`, `README.md`, `easycontrol/app/build.gradle`, `easycontrol/server/build.gradle` |
 | 当前 Gradle 构建仅包含 `:app` 与 `:server` | `:cloud` 已不在当前构建中，历史 cloud/激活能力不应视为当前源码依赖 | `easycontrol/settings.gradle`, `modules/cloud.md` |
 
@@ -92,5 +92,26 @@
 | 债务描述 | 优先级 | 来源 | 建议处理时机 |
 |---------|--------|------|-------------|
 | 当前自动化范围主要覆盖 GitHub tag release 打包，尚未覆盖自动化测试链路 | P1 | `.github/workflows/android-release.yml`, `README.md`, `easycontrol/app/build.gradle` | 进行较大功能变更前补齐最小可运行验证链路 |
-| 当前环境缺少 Java / Android SDK，且 `bash ./gradlew :server:copyDebug` 因 `JAVA_HOME is not set` 失败，难以在 CLI 中完成编译级回归 | P2 | 本次执行环境检测 | 需要正式验收或发布前在完整 Android 环境复验 |
-| `server` 产物复制到 `app` raw 目录依赖手动 Gradle 任务顺序 | P2 | `server/build.gradle` 与 `ClientStream.java` | 后续可考虑将该链路固化到统一构建任务中 |
+| 当前缺少真机 / ADB 设备回归环境，投屏、触控、音频、剪贴板与分辨率切换仍无法做端到端验证 | P2 | 本次执行环境检测 | 获取可控 Android 设备后继续功能回归 |
+| `server` 产物仍通过 copy 任务回写到 `app/src/main/res/raw/` 源码目录 | P2 | `easycontrol/server/build.gradle`, `easycontrol/app/build.gradle`, `ClientStream.java` | 后续可考虑改为 variant-aware 生成资源目录，减少源码目录被构建产物污染的风险 |
+
+## 7. 当前实施快照（2026-03-12）
+
+```yaml
+任务: scrcpy v3.3.4 近官方兼容同步
+方案包: .helloagents/archive/2026-03/202603120724_scrcpy-v334-official-sync/
+上游基线: /tmp/scrcpy-upstream 的 v3.3.4 tag -> fb6381f5b9bb96f3fa823d899f4c32de2ec84ab3
+当前保留边界:
+  - ClientStream 的 app_process 启动命令
+  - main/video 双 socket 连接拓扑
+  - ControlPacket 现有 1-9 控制协议与媒体事件格式
+  - R.raw.easycontrol_server 的内嵌打包链路
+已完成实现:
+  - server 侧参数解析、协议常量、FakeContext/Clipboard/Input/Window/Surface/Display 兼容层同步
+  - Device / Pointer / PointersState / VideoEncode / AudioEncode / AudioCapture 生命周期与兼容性改造
+  - app 侧 ClientStream / ControlPacket / ClientPlayer 的协议一致性整理
+阻断项:
+  - 当前环境无真机 / ADB 设备，无法完成投屏、触控、音频、剪贴板、分辨率切换回归
+```
+
+> 当前本地构建环境已补齐 JDK 17 与 Android SDK，debug 构建链路验证通过；剩余阻断是真机回归环境。

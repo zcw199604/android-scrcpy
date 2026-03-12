@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### 开发环境
+- **[repository_docs]**: 在仓库内安装本地 Temurin JDK 17（`.local-jdks/jdk-17`）与 Android SDK（`.android-sdk`），并让 `easycontrol/gradlew` / `easycontrol/local.properties` 自动指向仓库内构建环境 — by zcw
+  - 结果: `./gradlew -version`、`./gradlew :server:compileDebugJavaWithJavac`、`./gradlew :app:assembleDebug` 已验证成功
+### 同步/重构
+- **[easycontrol_server]**: 在保持 `ClientStream` 启动命令、双 socket、`ControlPacket` 包格式与 `R.raw.easycontrol_server` 打包链路不变的前提下，同步 scrcpy v3.3.4 的兼容层与生命周期实现，并修复 AGP 8.2 下 app/server 构建链路的显式任务依赖 — by zcw
+  - 方案: [202603120724_scrcpy-v334-official-sync](archive/2026-03/202603120724_scrcpy-v334-official-sync/)
+  - 范围: `Server` / `Options` / `Device` / `Pointer` / `PointersState` / `FakeContext` / `ClipboardManager` / `InputManager` / `WindowManager` / `SurfaceControl` / `DisplayManager` / `DisplayInfo` / `VideoEncode` / `AudioEncode` / `AudioCapture` / `easycontrol/app/build.gradle`
+  - 验证: `./gradlew :server:assembleDebug :server:copyDebug :app:assembleDebug` 与 `./gradlew :app:assembleDebug` 已通过；真机回归待补
+
+### 协议整理
+- **[easycontrol_app]**: 同步 app 侧 `ClientStream` / `ControlPacket` / `ClientPlayer` 的协议常量表达，保持现有连接与播放行为不变 — by zcw
+  - 方案: [202603120724_scrcpy-v334-official-sync](archive/2026-03/202603120724_scrcpy-v334-official-sync/)
+### 交互优化
+- **[easycontrol_app]**: 补充连接失败场景的用户可见错误提示，区分 ADB 未连通、调试未授权、USB 通道异常、被控端服务连接失败与超时 — by zcw
+  - 验证: `./gradlew :app:compileDebugJavaWithJavac :app:mergeDebugResources`、`./gradlew :app:assembleDebug` 已通过
 ### 新增
 - **[knowledge-base]**: 初始化 HelloAGENTS 项目知识库（入口、上下文、模块索引、归档索引） — by zcw
   - 方案: 无（通过 `~init` 初始化）
@@ -44,4 +59,4 @@
 ## 基线版本
 - `easycontrol/app`: `versionCode 10507` / `versionName 1.5.7`
 - `easycontrol/server`: `versionCode 20000` / `versionName 2.0.0`
-- 当前知识库已累计归档 5 个 HelloAGENTS 方案包（见 `archive/_index.md`）。
+- 当前知识库已累计归档 8 个 HelloAGENTS 方案包（见 `archive/_index.md`）。

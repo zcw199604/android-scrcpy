@@ -4,8 +4,20 @@
 package top.saymzx.easycontrol.server.entity;
 
 public final class Options {
-  public static int serverPort=25166;
-  public static boolean listenerClip=true;
+  public static final String ARG_SERVER_PORT = "serverPort";
+  public static final String ARG_LISTENER_CLIP = "listenerClip";
+  public static final String ARG_LISTEN_CLIP = "listenClip";
+  public static final String ARG_IS_AUDIO = "isAudio";
+  public static final String ARG_MAX_SIZE = "maxSize";
+  public static final String ARG_MAX_VIDEO_BIT = "maxVideoBit";
+  public static final String ARG_MAX_FPS = "maxFps";
+  public static final String ARG_KEEP_AWAKE = "keepAwake";
+  public static final String ARG_SUPPORT_H265 = "supportH265";
+  public static final String ARG_SUPPORT_OPUS = "supportOpus";
+  public static final String ARG_START_APP = "startApp";
+
+  public static int serverPort = 25166;
+  public static boolean listenerClip = true;
   public static boolean isAudio = true;
   public static int maxSize = 1600;
   public static int maxVideoBit = 4000000;
@@ -15,6 +27,13 @@ public final class Options {
   public static boolean supportOpus = true;
   public static String startApp = "";
 
+  private Options() {
+  }
+
+  private static boolean parseBoolean(String value) {
+    return "1".equals(value) || Boolean.parseBoolean(value);
+  }
+
   public static void parse(String... args) {
     for (String arg : args) {
       int equalIndex = arg.indexOf('=');
@@ -22,38 +41,40 @@ public final class Options {
       String key = arg.substring(0, equalIndex);
       String value = arg.substring(equalIndex + 1);
       switch (key) {
-        case "serverPort":
+        case ARG_SERVER_PORT:
           serverPort = Integer.parseInt(value);
           break;
-        case "listenerClip":
-          listenerClip = Integer.parseInt(value) == 1;
+        case ARG_LISTENER_CLIP:
+        case ARG_LISTEN_CLIP:
+          listenerClip = parseBoolean(value);
           break;
-        case "isAudio":
-          isAudio = Integer.parseInt(value) == 1;
+        case ARG_IS_AUDIO:
+          isAudio = parseBoolean(value);
           break;
-        case "maxSize":
+        case ARG_MAX_SIZE:
           maxSize = Integer.parseInt(value);
           break;
-        case "maxFps":
+        case ARG_MAX_FPS:
           maxFps = Integer.parseInt(value);
           break;
-        case "maxVideoBit":
+        case ARG_MAX_VIDEO_BIT:
           maxVideoBit = Integer.parseInt(value) * 1000000;
           break;
-        case "keepAwake":
-          keepAwake = Integer.parseInt(value) == 1;
+        case ARG_KEEP_AWAKE:
+          keepAwake = parseBoolean(value);
           break;
-        case "supportH265":
-          supportH265 = Integer.parseInt(value) == 1;
+        case ARG_SUPPORT_H265:
+          supportH265 = parseBoolean(value);
           break;
-        case "supportOpus":
-          supportOpus = Integer.parseInt(value) == 1;
+        case ARG_SUPPORT_OPUS:
+          supportOpus = parseBoolean(value);
           break;
-        case "startApp":
+        case ARG_START_APP:
           startApp = value;
+          break;
+        default:
           break;
       }
     }
   }
 }
-

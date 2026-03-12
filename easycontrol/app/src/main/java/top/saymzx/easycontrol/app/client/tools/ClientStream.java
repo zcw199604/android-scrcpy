@@ -1,11 +1,17 @@
 package top.saymzx.easycontrol.app.client.tools;
 
+import android.widget.Toast;
+
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import top.saymzx.easycontrol.app.BuildConfig;
 import top.saymzx.easycontrol.app.R;
@@ -18,6 +24,22 @@ import top.saymzx.easycontrol.app.entity.MyInterface;
 import top.saymzx.easycontrol.app.helper.PublicTools;
 
 public class ClientStream {
+  private static final String ARG_SERVER_PORT = "serverPort";
+  private static final String ARG_LISTEN_CLIP = "listenClip";
+  private static final String ARG_IS_AUDIO = "isAudio";
+  private static final String ARG_MAX_SIZE = "maxSize";
+  private static final String ARG_MAX_FPS = "maxFps";
+  private static final String ARG_MAX_VIDEO_BIT = "maxVideoBit";
+  private static final String ARG_KEEP_AWAKE = "keepAwake";
+  private static final String ARG_SUPPORT_H265 = "supportH265";
+  private static final String ARG_SUPPORT_OPUS = "supportOpus";
+  private static final String ARG_START_APP = "startApp";
+
+  private static final String ERROR_ADB_USB_DEVICE_MISSING = "ADB_USB_DEVICE_MISSING";
+  private static final String ERROR_ADB_AUTH_FAILED = "ADB_AUTH_FAILED";
+  private static final String ERROR_ADB_CONNECT_FAILED = "ADB_CONNECT_FAILED";
+  private static final String ERROR_SERVER_CONNECT_FAILED = "SERVER_CONNECT_FAILED";
+
   private boolean isClose = false;
   private boolean connectDirect = false;
   private Adb adb;
@@ -30,6 +52,7 @@ public class ClientStream {
   private BufferStream videoBufferStream;
   private BufferStream shell;
   private Thread connectThread = null;
+  private final AtomicBoolean connectResultHandled = new AtomicBoolean(false);
   private static final String serverName = "/data/local/tmp/easycontrol_server_" + BuildConfig.VERSION_CODE + ".jar";
   private static final boolean supportH265 = DecodecTools.isSupportH265();
   private static final boolean supportOpus = DecodecTools.isSupportOpus();
@@ -37,32 +60,111 @@ public class ClientStream {
   private static final int timeoutDelay = 1000 * 15;
 
   public ClientStream(Device device, MyInterface.MyFunctionBoolean handle) {
-    // 超时
     Thread timeOutThread = new Thread(() -> {
       try {
         Thread.sleep(timeoutDelay);
-        PublicTools.logToast("stream", AppData.applicationContext.getString(R.string.toast_timeout), true);
-        handle.run(false);
+        if (notifyConnectResult(handle, false)) showConnectToast(AppData.applicationContext.getString(R.string.toast_connect_timeout_detail));
         if (connectThread != null) connectThread.interrupt();
       } catch (InterruptedException ignored) {
       }
     });
-    // 连接
     connectThread = new Thread(() -> {
       try {
         adb = AdbTools.connectADB(device);
         startServer(device);
         connectServer(device);
-        handle.run(true);
+        notifyConnectResult(handle, true);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        notifyConnectResult(handle, false);
       } catch (Exception e) {
-        PublicTools.logToast("stream", e.toString(), true);
-        handle.run(false);
+        if (notifyConnectResult(handle, false)) showConnectError(device, e);
       } finally {
         timeOutThread.interrupt();
       }
     });
     connectThread.start();
     timeOutThread.start();
+  }
+
+  private boolean notifyConnectResult(MyInterface.MyFunctionBoolean handle, boolean result) {
+    if (connectResultHandled.compareAndSet(false, true)) {
+      handle.run(result);
+      return true;
+    }
+    return false;
+  }
+
+  private void showConnectError(Device device, Exception e) {
+    PublicTools.logToast("stream", buildDebugMessage(device, e), false);
+    showConnectToast(buildUserMessage(device, e));
+  }
+
+  private void showConnectToast(String message) {
+    AppData.uiHandler.post(() -> Toast.makeText(AppData.applicationContext, message, Toast.LENGTH_LONG).show());
+  }
+
+  private String buildDebugMessage(Device device, Exception e) {
+    StringBuilder builder = new StringBuilder();
+    builder.append(device.name);
+    builder.append(" [");
+    builder.append(device.isLinkDevice() ? "USB" : buildAdbTarget(device));
+    builder.append("] ");
+    builder.append(e);
+    Throwable root = getRootCause(e);
+    if (root != e) {
+      builder.append(" | root=");
+      builder.append(root);
+    }
+    return builder.toString();
+  }
+
+  private String buildUserMessage(Device device, Exception e) {
+    Throwable root = getRootCause(e);
+    String errorCode = e.getMessage();
+    String rootMessage = root.getMessage();
+
+    if (ERROR_ADB_USB_DEVICE_MISSING.equals(errorCode) || ERROR_ADB_USB_DEVICE_MISSING.equals(rootMessage) || "no usb connect".equals(rootMessage)) {
+      return AppData.applicationContext.getString(R.string.toast_connect_adb_usb_missing);
+    }
+    if ("not have usbManager".equals(rootMessage) || "有线连接错误".equals(rootMessage)) {
+      return AppData.applicationContext.getString(R.string.toast_connect_adb_usb_error);
+    }
+    if (ERROR_ADB_AUTH_FAILED.equals(errorCode) || ERROR_ADB_AUTH_FAILED.equals(rootMessage)) {
+      return AppData.applicationContext.getString(device.isLinkDevice() ? R.string.toast_connect_adb_usb_authorize : R.string.toast_connect_adb_network_authorize);
+    }
+    if (ERROR_ADB_CONNECT_FAILED.equals(errorCode) || ERROR_ADB_CONNECT_FAILED.equals(rootMessage)) {
+      return AppData.applicationContext.getString(device.isLinkDevice() ? R.string.toast_connect_adb_usb_error : R.string.toast_connect_adb_network, buildAdbTarget(device));
+    }
+    if (root instanceof UnknownHostException || root instanceof ConnectException || root instanceof SocketTimeoutException) {
+      return AppData.applicationContext.getString(device.isLinkDevice() ? R.string.toast_connect_adb_usb_error : R.string.toast_connect_adb_network, buildAdbTarget(device));
+    }
+    if (ERROR_SERVER_CONNECT_FAILED.equals(errorCode) || ERROR_SERVER_CONNECT_FAILED.equals(rootMessage) || AppData.applicationContext.getString(R.string.toast_connect_server).equals(errorCode)) {
+      return AppData.applicationContext.getString(R.string.toast_connect_server_detail, device.serverPort);
+    }
+    if (rootMessage != null && !rootMessage.trim().isEmpty()) {
+      return AppData.applicationContext.getString(R.string.toast_connect_detail, sanitizeMessage(rootMessage));
+    }
+    return AppData.applicationContext.getString(R.string.toast_connect_server);
+  }
+
+  private Throwable getRootCause(Throwable throwable) {
+    Throwable current = throwable;
+    while (current.getCause() != null && current.getCause() != current) current = current.getCause();
+    return current;
+  }
+
+  private String sanitizeMessage(String message) {
+    return message.replace("\n", " ").replace("\r", " ").trim();
+  }
+
+  private String buildAdbTarget(Device device) {
+    if (device.isLinkDevice()) return device.name;
+    try {
+      return PublicTools.getIp(device.address) + ":" + device.adbPort;
+    } catch (Exception ignored) {
+      return device.address + ":" + device.adbPort;
+    }
   }
 
   // 启动Server
@@ -73,16 +175,16 @@ public class ClientStream {
     }
     shell = adb.getShell();
     shell.write(ByteBuffer.wrap(("app_process -Djava.class.path=" + serverName + " / top.saymzx.easycontrol.server.Server"
-      + " serverPort=" + device.serverPort
-      + " listenClip=" + (device.listenClip ? 1 : 0)
-      + " isAudio=" + (device.isAudio ? 1 : 0)
-      + " maxSize=" + device.maxSize
-      + " maxFps=" + device.maxFps
-      + " maxVideoBit=" + device.maxVideoBit
-      + " keepAwake=" + (device.keepWakeOnRunning ? 1 : 0)
-      + " supportH265=" + ((device.useH265 && supportH265) ? 1 : 0)
-      + " supportOpus=" + (supportOpus ? 1 : 0)
-      + " startApp=" + device.startApp + " \n").getBytes()));
+      + " " + ARG_SERVER_PORT + "=" + device.serverPort
+      + " " + ARG_LISTEN_CLIP + "=" + (device.listenClip ? 1 : 0)
+      + " " + ARG_IS_AUDIO + "=" + (device.isAudio ? 1 : 0)
+      + " " + ARG_MAX_SIZE + "=" + device.maxSize
+      + " " + ARG_MAX_FPS + "=" + device.maxFps
+      + " " + ARG_MAX_VIDEO_BIT + "=" + device.maxVideoBit
+      + " " + ARG_KEEP_AWAKE + "=" + (device.keepWakeOnRunning ? 1 : 0)
+      + " " + ARG_SUPPORT_H265 + "=" + ((device.useH265 && supportH265) ? 1 : 0)
+      + " " + ARG_SUPPORT_OPUS + "=" + (supportOpus ? 1 : 0)
+      + " " + ARG_START_APP + "=" + device.startApp + " \n").getBytes()));
   }
 
   // 连接Server
@@ -90,6 +192,8 @@ public class ClientStream {
     Thread.sleep(50);
     int reTry = 40;
     int reTryTime = timeoutDelay / reTry;
+    Exception directException = null;
+    Exception forwardException = null;
     if (!device.isLinkDevice()) {
       long startTime = System.currentTimeMillis();
       boolean mainConn = false;
@@ -108,27 +212,26 @@ public class ClientStream {
           videoDataInputStream = new DataInputStream(videoSocket.getInputStream());
           connectDirect = true;
           return;
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+          directException = e;
           if (mainSocket != null) mainSocket.close();
           if (videoSocket != null) videoSocket.close();
-          // 如果超时，直接跳出循环
           if (System.currentTimeMillis() - startTime >= timeoutDelay / 2 - 1000) i = reTry;
           else Thread.sleep(reTryTime);
         }
       }
     }
-    // 直连失败尝试ADB中转
     for (int i = 0; i < reTry; i++) {
       try {
         if (mainBufferStream == null) mainBufferStream = adb.tcpForward(device.serverPort);
-        // 为了减少adb同步阻塞的问题，此处分开音视频流
         if (videoBufferStream == null) videoBufferStream = adb.tcpForward(device.serverPort);
         return;
-      } catch (Exception ignored) {
+      } catch (Exception e) {
+        forwardException = e;
         Thread.sleep(reTryTime);
       }
     }
-    throw new Exception(AppData.applicationContext.getString(R.string.toast_connect_server));
+    throw new Exception(ERROR_SERVER_CONNECT_FAILED, forwardException != null ? forwardException : directException);
   }
 
   public String runShell(String cmd) throws Exception {
@@ -202,8 +305,8 @@ public class ClientStream {
       } catch (Exception ignored) {
       }
     } else {
-      mainBufferStream.close();
-      videoBufferStream.close();
+      if (mainBufferStream != null) mainBufferStream.close();
+      if (videoBufferStream != null) videoBufferStream.close();
     }
   }
 }

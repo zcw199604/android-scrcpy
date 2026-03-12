@@ -32,6 +32,9 @@ import top.saymzx.easycontrol.server.wrappers.SurfaceControl;
 import top.saymzx.easycontrol.server.wrappers.WindowManager;
 
 public final class Device {
+  public static final int DISPLAY_ID_NONE = -1;
+  private static final boolean USE_ANDROID_15_DISPLAY_POWER = false;
+
   private static int displayId = Display.DEFAULT_DISPLAY;
   private static VirtualDisplay virtualDisplay;
   public static Pair<Integer, Integer> realSize;
@@ -40,8 +43,10 @@ public final class Device {
   private static boolean needReset = false;
   private static int oldScreenOffTimeout = 60000;
 
+  private Device() {
+  }
+
   public static void init() throws Exception {
-    // 若启动单个应用则需创建虚拟Dispaly
     if (!Objects.equals(Options.startApp, "")) {
       virtualDisplay = DisplayManager.createVirtualDisplay();
       displayId = virtualDisplay.getDisplay().getDisplayId();
@@ -50,48 +55,59 @@ public final class Device {
     }
     getRealSize();
     updateSize();
-    // 旋转监听
     setRotationListener();
-    // 剪切板监听
-    if (Options.listenerClip) setClipBoardListener();
-    // 设置不息屏
-    if (Options.keepAwake) setKeepScreenLight();
+    if (Options.listenerClip) {
+      setClipBoardListener();
+    }
+    if (Options.keepAwake) {
+      setKeepScreenLight();
+    }
   }
 
-  // 打开并移动应用
   private static void startAndMoveAppToVirtualDisplay() throws IOException, InterruptedException {
     int appStackId = getAppStackId();
     if (appStackId == -1) {
       Device.execReadOutput("monkey -p " + Options.startApp + " -c android.intent.category.LAUNCHER 1");
       appStackId = getAppStackId();
     }
-    if (appStackId == -1) throw new IOException("error app");
+    if (appStackId == -1) {
+      throw new IOException("error app");
+    }
     Device.execReadOutput("am display move-stack " + appStackId + " " + displayId);
   }
 
   private static int getAppStackId() throws IOException, InterruptedException {
     String amStackList = Device.execReadOutput("am stack list");
-    Matcher m = Pattern.compile("taskId=([0-9]+): " + Options.startApp).matcher(amStackList);
-    if (!m.find()) return -1;
-    return Integer.parseInt(Objects.requireNonNull(m.group(1)));
+    Matcher matcher = Pattern.compile("taskId=([0-9]+): " + Options.startApp).matcher(amStackList);
+    if (!matcher.find()) {
+      return -1;
+    }
+    return Integer.parseInt(Objects.requireNonNull(matcher.group(1)));
   }
 
   private static void getRealSize() throws IOException, InterruptedException {
     String output = Device.execReadOutput("wm size");
-    String patStr;
-    // 查看当前分辨率
-    patStr = (output.contains("Override") ? "Override" : "Physical") + " size: (\\d+)x(\\d+)";
-    Matcher matcher = Pattern.compile(patStr).matcher(output);
+    String pattern = (output.contains("Override") ? "Override" : "Physical") + " size: (\\d+)x(\\d+)";
+    Matcher matcher = Pattern.compile(pattern).matcher(output);
     if (matcher.find()) {
       String width = matcher.group(1);
       String height = matcher.group(2);
-      if (width == null || height == null) return;
+      if (width == null || height == null) {
+        return;
+      }
       realSize = new Pair<>(Integer.parseInt(width), Integer.parseInt(height));
     }
   }
 
   private static void updateSize() {
-    displayInfo = DisplayManager.getDisplayInfo(displayId);
+    DisplayInfo newDisplayInfo = DisplayManager.getDisplayInfo(displayId);
+    if (newDisplayInfo != null) {
+      displayInfo = newDisplayInfo;
+    }
+    if (displayInfo == null) {
+      return;
+    }
+
     boolean isPortrait = displayInfo.width < displayInfo.height;
     int major = isPortrait ? displayInfo.height : displayInfo.width;
     int minor = isPortrait ? displayInfo.width : displayInfo.height;
@@ -99,25 +115,21 @@ public final class Device {
       minor = minor * Options.maxSize / major;
       major = Options.maxSize;
     }
-    // 某些厂商实现的解码器只接受16的倍数，所以需要缩放至最近参数
     minor = minor + 8 & ~15;
     major = major + 8 & ~15;
     videoSize = isPortrait ? new Pair<>(minor, major) : new Pair<>(major, minor);
   }
 
-  // 修改分辨率
   public static void changeResolution(float targetRatio) {
     try {
-      // 安全阈值(长宽比最多三倍)
-      if (targetRatio > 3 || targetRatio < 0.34) return;
-      // 没有获取到真实分辨率
-      if (realSize == null) return;
+      if (targetRatio > 3 || targetRatio < 0.34 || realSize == null) {
+        return;
+      }
 
       float originalRatio = (float) realSize.first / realSize.second;
-      // 计算变化比率
       float ratioChange = targetRatio / originalRatio;
-      // 根据比率变化确定新的长和宽
-      int newWidth, newHeight;
+      int newWidth;
+      int newHeight;
       if (ratioChange > 1) {
         newWidth = realSize.first;
         newHeight = (int) (realSize.second / ratioChange);
@@ -130,26 +142,29 @@ public final class Device {
     }
   }
 
-  // 修改分辨率
   public static void changeResolution(int width, int height) {
     try {
+      if (realSize == null || displayInfo == null) {
+        return;
+      }
       float originalRatio = (float) realSize.first / realSize.second;
-      // 安全阈值(长宽比最多三倍)
-      if (originalRatio > 3 || originalRatio < 0.34) return;
+      if (originalRatio > 3 || originalRatio < 0.34) {
+        return;
+      }
 
       needReset = true;
-
-      // 缩放至16倍数
       width = width + 8 & ~15;
       height = height + 8 & ~15;
-      // 避免分辨率相同，会触发安全机制导致系统崩溃
-      if (width == height) width -= 16;
+      if (width == height) {
+        width -= 16;
+      }
 
-      // 修改分辨率
-      if (virtualDisplay != null) virtualDisplay.resize(width, height, displayInfo.density);
-      else Device.execReadOutput("wm size " + width + "x" + height);
+      if (virtualDisplay != null) {
+        virtualDisplay.resize(width, height, displayInfo.density);
+      } else {
+        Device.execReadOutput("wm size " + width + "x" + height);
+      }
 
-      // 更新，需延迟一段时间
       Thread.sleep(200);
       updateSize();
       VideoEncode.isHasChangeConfig = true;
@@ -157,17 +172,23 @@ public final class Device {
     }
   }
 
-  // 恢复分辨率
   public static void fallbackResolution() throws IOException, InterruptedException {
-    if (Device.needReset) {
-      if (virtualDisplay != null) {
-        int appStackId = getAppStackId();
-        if (appStackId == -1) Device.execReadOutput("am display move-stack " + appStackId + " " + Display.DEFAULT_DISPLAY);
-        virtualDisplay.release();
-      } else {
-        if (Device.realSize != null) Device.execReadOutput("wm size " + Device.realSize.first + "x" + Device.realSize.second);
-        else Device.execReadOutput("wm size reset");
+    if (!needReset) {
+      return;
+    }
+    if (virtualDisplay != null) {
+      int appStackId = getAppStackId();
+      if (appStackId != -1) {
+        Device.execReadOutput("am display move-stack " + appStackId + " " + Display.DEFAULT_DISPLAY);
       }
+      virtualDisplay.release();
+      virtualDisplay = null;
+      return;
+    }
+    if (Device.realSize != null) {
+      Device.execReadOutput("wm size " + Device.realSize.first + "x" + Device.realSize.second);
+    } else {
+      Device.execReadOutput("wm size reset");
     }
   }
 
@@ -177,17 +198,19 @@ public final class Device {
     ClipboardManager.addPrimaryClipChangedListener(new IOnPrimaryClipChangedListener.Stub() {
       public void dispatchPrimaryClipChanged() {
         String newClipboardText = ClipboardManager.getText();
-        if (newClipboardText == null) return;
-        if (!newClipboardText.equals(nowClipboardText)) {
-          nowClipboardText = newClipboardText;
-          // 发送报文
-          ControlPacket.sendClipboardEvent(nowClipboardText);
+        if (newClipboardText == null || newClipboardText.equals(nowClipboardText)) {
+          return;
         }
+        nowClipboardText = newClipboardText;
+        ControlPacket.sendClipboardEvent(nowClipboardText);
       }
     });
   }
 
   public static void setClipboardText(String text) {
+    if (text == null || text.equals(nowClipboardText)) {
+      return;
+    }
     nowClipboardText = text;
     ClipboardManager.setText(nowClipboardText);
   }
@@ -204,75 +227,150 @@ public final class Device {
   private static final PointersState pointersState = new PointersState();
 
   public static void touchEvent(int action, Float x, Float y, int pointerId, int offsetTime) {
-    Pointer pointer = pointersState.get(pointerId);
-
-    if (pointer == null) {
-      if (action != MotionEvent.ACTION_DOWN) return;
-      pointer = pointersState.newPointer(pointerId, SystemClock.uptimeMillis() - 50);
+    if (displayInfo == null || x == null || y == null) {
+      return;
     }
 
-    pointer.x = x * displayInfo.width;
-    pointer.y = y * displayInfo.height;
+    Pointer pointer = pointersState.get(pointerId);
+    if (pointer == null) {
+      if (action != MotionEvent.ACTION_DOWN) {
+        return;
+      }
+      pointer = pointersState.obtain(pointerId, SystemClock.uptimeMillis() - 50);
+      if (pointer == null) {
+        return;
+      }
+    }
+
+    int pointerIndex = pointersState.getIndex(pointerId);
+    if (pointerIndex == -1) {
+      return;
+    }
+
+    float normalizedX = Math.max(0f, Math.min(1f, x));
+    float normalizedY = Math.max(0f, Math.min(1f, y));
+    pointer.x = normalizedX * displayInfo.width;
+    pointer.y = normalizedY * displayInfo.height;
+    pointer.pressure = action == MotionEvent.ACTION_UP ? 0f : 1f;
+    pointer.up = action == MotionEvent.ACTION_UP;
+
     int pointerCount = pointersState.update();
+    if (pointerCount <= 0) {
+      return;
+    }
 
     if (action == MotionEvent.ACTION_UP) {
-      pointersState.remove(pointerId);
-      if (pointerCount > 1) action = MotionEvent.ACTION_POINTER_UP | (pointer.id << MotionEvent.ACTION_POINTER_INDEX_SHIFT);
-    } else if (action == MotionEvent.ACTION_DOWN) {
-      if (pointerCount > 1) action = MotionEvent.ACTION_POINTER_DOWN | (pointer.id << MotionEvent.ACTION_POINTER_INDEX_SHIFT);
+      if (pointerCount > 1) {
+        action = MotionEvent.ACTION_POINTER_UP | (pointerIndex << MotionEvent.ACTION_POINTER_INDEX_SHIFT);
+      }
+    } else if (action == MotionEvent.ACTION_DOWN && pointerCount > 1) {
+      action = MotionEvent.ACTION_POINTER_DOWN | (pointerIndex << MotionEvent.ACTION_POINTER_INDEX_SHIFT);
     }
-    MotionEvent event = MotionEvent.obtain(pointer.downTime, pointer.downTime + offsetTime, action, pointerCount, pointersState.pointerProperties, pointersState.pointerCoords, 0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_TOUCHSCREEN, 0);
-    injectEvent(event);
+
+    MotionEvent event = MotionEvent.obtain(pointer.downTime, pointer.downTime + offsetTime, action, pointerCount,
+      pointersState.pointerProperties, pointersState.pointerCoords, 0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_TOUCHSCREEN, 0);
+    try {
+      injectEvent(event);
+    } finally {
+      event.recycle();
+    }
   }
 
   public static void keyEvent(int keyCode, int meta) {
     long now = SystemClock.uptimeMillis();
-    KeyEvent event1 = new KeyEvent(now, now, MotionEvent.ACTION_DOWN, keyCode, 0, meta, -1, 0, 0, InputDevice.SOURCE_KEYBOARD);
-    KeyEvent event2 = new KeyEvent(now, now, MotionEvent.ACTION_UP, keyCode, 0, meta, -1, 0, 0, InputDevice.SOURCE_KEYBOARD);
-    injectEvent(event1);
-    injectEvent(event2);
+    KeyEvent downEvent = new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, meta, -1, 0, 0, InputDevice.SOURCE_KEYBOARD);
+    KeyEvent upEvent = new KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, meta, -1, 0, 0, InputDevice.SOURCE_KEYBOARD);
+    injectEvent(downEvent);
+    injectEvent(upEvent);
   }
 
-  private static void injectEvent(InputEvent inputEvent) {
+  public static boolean supportsInputEvents(int targetDisplayId) {
+    return targetDisplayId == Display.DEFAULT_DISPLAY || Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
+  }
+
+  private static boolean injectEvent(InputEvent inputEvent) {
     try {
-      if (displayId != Display.DEFAULT_DISPLAY) InputManager.setDisplayId(inputEvent, displayId);
+      if (!supportsInputEvents(displayId)) {
+        return false;
+      }
+      if (displayId != Display.DEFAULT_DISPLAY) {
+        InputManager.setDisplayId(inputEvent, displayId);
+      }
       InputManager.injectInputEvent(inputEvent, InputManager.INJECT_INPUT_EVENT_MODE_ASYNC);
+      return true;
     } catch (Exception ignored) {
+      return false;
     }
   }
 
   public static void changeScreenPowerMode(int mode) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      long[] physicalDisplayIds = SurfaceControl.getPhysicalDisplayIds();
-      if (physicalDisplayIds == null) return;
-      for (long physicalDisplayId : physicalDisplayIds) {
-        IBinder token = SurfaceControl.getPhysicalDisplayToken(physicalDisplayId);
-        if (token != null) SurfaceControl.setDisplayPowerMode(token, mode);
+    try {
+      boolean on = mode == SurfaceControl.POWER_MODE_NORMAL;
+      if (USE_ANDROID_15_DISPLAY_POWER && Build.VERSION.SDK_INT >= 35 && DisplayManager.requestDisplayPower(displayId, on)) {
+        return;
       }
-    } else {
-      IBinder d = SurfaceControl.getBuiltInDisplay();
-      if (d != null) SurfaceControl.setDisplayPowerMode(d, mode);
+
+      boolean applyToMultiPhysicalDisplays = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
+      if (applyToMultiPhysicalDisplays
+        && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+        && Build.BRAND != null
+        && Build.BRAND.equalsIgnoreCase("honor")
+        && SurfaceControl.hasGetBuiltInDisplayMethod()) {
+        applyToMultiPhysicalDisplays = false;
+      }
+
+      int powerMode = on ? SurfaceControl.POWER_MODE_NORMAL : SurfaceControl.POWER_MODE_OFF;
+      if (applyToMultiPhysicalDisplays) {
+        long[] physicalDisplayIds = SurfaceControl.getPhysicalDisplayIds();
+        if (physicalDisplayIds != null) {
+          for (long physicalDisplayId : physicalDisplayIds) {
+            IBinder token = SurfaceControl.getPhysicalDisplayToken(physicalDisplayId);
+            if (token != null) {
+              SurfaceControl.setDisplayPowerMode(token, powerMode);
+            }
+          }
+          return;
+        }
+      }
+
+      IBinder displayToken = SurfaceControl.getBuiltInDisplay();
+      if (displayToken != null) {
+        SurfaceControl.setDisplayPowerMode(displayToken, powerMode);
+      }
+    } catch (Exception ignored) {
     }
   }
 
   public static void changePower(int mode) {
-    if (mode == -1) keyEvent(26, 0);
-    else {
-      try {
-        String output = execReadOutput("dumpsys deviceidle | grep mScreenOn");
-        Boolean isScreenOn = null;
-        if (output.contains("mScreenOn=true")) isScreenOn = true;
-        else if (output.contains("mScreenOn=false")) isScreenOn = false;
-        if (isScreenOn != null && isScreenOn ^ (mode == 1)) Device.keyEvent(26, 0);
-      } catch (Exception ignored) {
+    if (mode == -1) {
+      keyEvent(26, 0);
+      return;
+    }
+    try {
+      String output = execReadOutput("dumpsys deviceidle | grep mScreenOn");
+      Boolean isScreenOn = null;
+      if (output.contains("mScreenOn=true")) {
+        isScreenOn = true;
+      } else if (output.contains("mScreenOn=false")) {
+        isScreenOn = false;
       }
+      if (isScreenOn != null && isScreenOn ^ (mode == 1)) {
+        Device.keyEvent(26, 0);
+      }
+    } catch (Exception ignored) {
     }
   }
 
   public static void rotateDevice() {
+    if (displayInfo == null) {
+      return;
+    }
     boolean accelerometerRotation = !WindowManager.isRotationFrozen(displayId);
-    WindowManager.freezeRotation(displayId, (displayInfo.rotation == 0 || displayInfo.rotation == 3) ? 1 : 0);
-    if (accelerometerRotation) WindowManager.thawRotation(displayId);
+    int newRotation = (displayInfo.rotation & 1) ^ 1;
+    WindowManager.freezeRotation(displayId, newRotation);
+    if (accelerometerRotation) {
+      WindowManager.thawRotation(displayId);
+    }
   }
 
   public static String execReadOutput(String cmd) throws IOException, InterruptedException {
@@ -280,30 +378,35 @@ public final class Device {
     StringBuilder builder = new StringBuilder();
     String line;
     try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-      while ((line = bufferedReader.readLine()) != null) builder.append(line).append("\n");
+      while ((line = bufferedReader.readLine()) != null) {
+        builder.append(line).append("\n");
+      }
     }
     int exitCode = process.waitFor();
-    if (exitCode != 0) throw new IOException("命令执行错误" + cmd);
+    if (exitCode != 0) {
+      throw new IOException("命令执行错误" + cmd);
+    }
     return builder.toString();
   }
 
   private static void setKeepScreenLight() {
     try {
       String output = execReadOutput("settings get system screen_off_timeout");
-      // 使用正则表达式匹配数字
       Matcher matcher = Pattern.compile("\\d+").matcher(output);
       if (matcher.find()) {
         int timeout = Integer.parseInt(matcher.group());
-        if (timeout >= 20 && timeout <= 60 * 30) oldScreenOffTimeout = timeout;
+        if (timeout >= 20 && timeout <= 60 * 30) {
+          oldScreenOffTimeout = timeout;
+        }
       }
       execReadOutput("settings put system screen_off_timeout 600000000");
     } catch (Exception ignored) {
     }
   }
 
-  // 恢复自动锁定时间
   public static void fallbackScreenLightTimeout() throws IOException, InterruptedException {
-    if (Options.keepAwake) Device.execReadOutput("settings put system screen_off_timeout " + Device.oldScreenOffTimeout);
+    if (Options.keepAwake) {
+      Device.execReadOutput("settings put system screen_off_timeout " + Device.oldScreenOffTimeout);
+    }
   }
-
 }

@@ -7,6 +7,7 @@ import android.annotation.SuppressLint;
 import android.os.IBinder;
 import android.os.IInterface;
 
+import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -37,8 +38,12 @@ public final class Server {
   public static DataInputStream mainInputStream;
 
   private static final Object object = new Object();
-
   private static final int timeoutDelay = 1000 * 20;
+  private static volatile boolean released;
+  private static long lastKeepAliveTime = System.currentTimeMillis();
+
+  private Server() {
+  }
 
   public static void main(String... args) {
     try {
@@ -50,17 +55,16 @@ public final class Server {
         }
       });
       timeOutThread.start();
-      // 解析参数
+
       Options.parse(args);
-      // 初始化
       setManagers();
       Device.init();
-      // 连接
       connectClient();
-      // 初始化子服务
+      lastKeepAliveTime = System.currentTimeMillis();
+
       boolean canAudio = AudioEncode.init();
       VideoEncode.init();
-      // 启动
+
       ArrayList<Thread> threads = new ArrayList<>();
       threads.add(new Thread(Server::executeVideoOut));
       if (canAudio) {
@@ -68,19 +72,23 @@ public final class Server {
         threads.add(new Thread(Server::executeAudioOut));
       }
       threads.add(new Thread(Server::executeControlIn));
-      for (Thread thread : threads) thread.setPriority(Thread.MAX_PRIORITY);
-      for (Thread thread : threads) thread.start();
-      // 程序运行
+      for (Thread thread : threads) {
+        thread.setPriority(Thread.MAX_PRIORITY);
+      }
+      for (Thread thread : threads) {
+        thread.start();
+      }
+
       timeOutThread.interrupt();
       synchronized (object) {
         object.wait();
       }
-      // 终止子服务
-      for (Thread thread : threads) thread.interrupt();
+      for (Thread thread : threads) {
+        thread.interrupt();
+      }
     } catch (Exception e) {
       e.printStackTrace();
     } finally {
-      // 释放资源
       release();
     }
   }
@@ -90,11 +98,9 @@ public final class Server {
   @SuppressLint({"DiscouragedPrivateApi", "PrivateApi"})
   private static void setManagers() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
     GET_SERVICE_METHOD = Class.forName("android.os.ServiceManager").getDeclaredMethod("getService", String.class);
-    // 1
     WindowManager.init(getService("window", "android.view.IWindowManager"));
-    // 2
     DisplayManager.init(Class.forName("android.hardware.display.DisplayManagerGlobal").getDeclaredMethod("getInstance").invoke(null));
-    // 3
+
     Class<?> inputManagerClass;
     try {
       inputManagerClass = Class.forName("android.hardware.input.InputManagerGlobal");
@@ -102,9 +108,7 @@ public final class Server {
       inputManagerClass = android.hardware.input.InputManager.class;
     }
     InputManager.init(inputManagerClass.getDeclaredMethod("getInstance").invoke(null));
-    // 4
     ClipboardManager.init(getService("clipboard", "android.content.IClipboard"));
-    // 5
     SurfaceControl.init();
   }
 
@@ -140,7 +144,9 @@ public final class Server {
         VideoEncode.encodeOut();
         frame++;
         if (frame > 120) {
-          if (System.currentTimeMillis() - lastKeepAliveTime > timeoutDelay) throw new IOException("连接断开");
+          if (System.currentTimeMillis() - lastKeepAliveTime > timeoutDelay) {
+            throw new IOException("连接断开");
+          }
           frame = 0;
         }
       }
@@ -150,49 +156,53 @@ public final class Server {
   }
 
   private static void executeAudioIn() {
-    while (!Thread.interrupted()) AudioEncode.encodeIn();
+    while (!Thread.interrupted()) {
+      AudioEncode.encodeIn();
+    }
   }
 
   private static void executeAudioOut() {
     try {
-      while (!Thread.interrupted()) AudioEncode.encodeOut();
+      while (!Thread.interrupted()) {
+        AudioEncode.encodeOut();
+      }
     } catch (Exception e) {
       errorClose(e);
     }
   }
 
-  private static long lastKeepAliveTime = System.currentTimeMillis();
-
   private static void executeControlIn() {
     try {
       while (!Thread.interrupted()) {
         switch (Server.mainInputStream.readByte()) {
-          case 1:
+          case ControlPacket.TYPE_TOUCH_EVENT:
             ControlPacket.handleTouchEvent();
             break;
-          case 2:
+          case ControlPacket.TYPE_KEY_EVENT:
             ControlPacket.handleKeyEvent();
             break;
-          case 3:
+          case ControlPacket.TYPE_CLIPBOARD_EVENT:
             ControlPacket.handleClipboardEvent();
             break;
-          case 4:
+          case ControlPacket.TYPE_KEEP_ALIVE:
             lastKeepAliveTime = System.currentTimeMillis();
             break;
-          case 5:
+          case ControlPacket.TYPE_CHANGE_RESOLUTION_BY_RATIO:
             Device.changeResolution(mainInputStream.readFloat());
             break;
-          case 6:
+          case ControlPacket.TYPE_ROTATE_EVENT:
             Device.rotateDevice();
             break;
-          case 7:
+          case ControlPacket.TYPE_LIGHT_EVENT:
             Device.changeScreenPowerMode(mainInputStream.readByte());
             break;
-          case 8:
+          case ControlPacket.TYPE_POWER_EVENT:
             Device.changePower(mainInputStream.readInt());
             break;
-          case 9:
+          case ControlPacket.TYPE_CHANGE_RESOLUTION_BY_SIZE:
             Device.changeResolution(mainInputStream.readInt(), mainInputStream.readInt());
+            break;
+          default:
             break;
         }
       }
@@ -201,11 +211,11 @@ public final class Server {
     }
   }
 
-  public synchronized static void writeMain(ByteBuffer byteBuffer) throws IOException {
+  public static synchronized void writeMain(ByteBuffer byteBuffer) throws IOException {
     mainOutputStream.write(byteBuffer.array());
   }
 
-  public static void writeVideo(ByteBuffer byteBuffer) throws IOException {
+  public static synchronized void writeVideo(ByteBuffer byteBuffer) throws IOException {
     videoOutputStream.write(byteBuffer.array());
   }
 
@@ -216,30 +226,55 @@ public final class Server {
     }
   }
 
-  // 释放资源
-  private static void release() {
-    for (int i = 0; i < 4; i++) {
-      try {
-        switch (i) {
-          case 0:
-            mainInputStream.close();
-            mainSocket.close();
-            videoSocket.close();
-            break;
-          case 1:
-            VideoEncode.release();
-            AudioEncode.release();
-            break;
-          case 2:
-            Device.fallbackResolution();
-            Device.fallbackScreenLightTimeout();
-          case 3:
-            Runtime.getRuntime().exit(0);
-            break;
-        }
-      } catch (Exception ignored) {
-      }
+  private static void closeQuietly(Closeable closeable) {
+    if (closeable == null) {
+      return;
+    }
+    try {
+      closeable.close();
+    } catch (Exception ignored) {
     }
   }
 
+  private static void closeQuietly(Socket socket) {
+    if (socket == null) {
+      return;
+    }
+    try {
+      socket.close();
+    } catch (Exception ignored) {
+    }
+  }
+
+  // 释放资源
+  private static void release() {
+    if (released) {
+      return;
+    }
+    released = true;
+
+    closeQuietly(mainInputStream);
+    closeQuietly(mainOutputStream);
+    closeQuietly(videoOutputStream);
+    closeQuietly(mainSocket);
+    closeQuietly(videoSocket);
+
+    try {
+      VideoEncode.release();
+    } catch (Exception ignored) {
+    }
+    try {
+      AudioEncode.release();
+    } catch (Exception ignored) {
+    }
+    try {
+      Device.fallbackResolution();
+    } catch (Exception ignored) {
+    }
+    try {
+      Device.fallbackScreenLightTimeout();
+    } catch (Exception ignored) {
+    }
+    Runtime.getRuntime().exit(0);
+  }
 }

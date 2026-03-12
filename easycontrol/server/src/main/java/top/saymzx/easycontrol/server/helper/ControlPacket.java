@@ -11,6 +11,22 @@ import top.saymzx.easycontrol.server.Server;
 import top.saymzx.easycontrol.server.entity.Device;
 
 public final class ControlPacket {
+  public static final byte TYPE_TOUCH_EVENT = 1;
+  public static final byte TYPE_KEY_EVENT = 2;
+  public static final byte TYPE_CLIPBOARD_EVENT = 3;
+  public static final byte TYPE_KEEP_ALIVE = 4;
+  public static final byte TYPE_CHANGE_RESOLUTION_BY_RATIO = 5;
+  public static final byte TYPE_ROTATE_EVENT = 6;
+  public static final byte TYPE_LIGHT_EVENT = 7;
+  public static final byte TYPE_POWER_EVENT = 8;
+  public static final byte TYPE_CHANGE_RESOLUTION_BY_SIZE = 9;
+
+  public static final byte EVENT_AUDIO = 1;
+  public static final byte EVENT_CLIPBOARD = 2;
+  public static final byte EVENT_VIDEO_SIZE = 3;
+
+  private ControlPacket() {
+  }
 
   public static void sendVideoEvent(long pts, ByteBuffer data) throws IOException {
     int size = data.remaining() + 8;
@@ -27,7 +43,7 @@ public final class ControlPacket {
     int size = data.remaining();
     if (size < 0) return;
     ByteBuffer byteBuffer = ByteBuffer.allocate(5 + size);
-    byteBuffer.put((byte) 1);
+    byteBuffer.put(EVENT_AUDIO);
     byteBuffer.putInt(size);
     byteBuffer.put(data);
     byteBuffer.flip();
@@ -38,7 +54,7 @@ public final class ControlPacket {
     byte[] tmpTextByte = newClipboardText.getBytes(StandardCharsets.UTF_8);
     if (tmpTextByte.length == 0 || tmpTextByte.length > 5000) return;
     ByteBuffer byteBuffer = ByteBuffer.allocate(5 + tmpTextByte.length);
-    byteBuffer.put((byte) 2);
+    byteBuffer.put(EVENT_CLIPBOARD);
     byteBuffer.putInt(tmpTextByte.length);
     byteBuffer.put(tmpTextByte);
     byteBuffer.flip();
@@ -51,7 +67,7 @@ public final class ControlPacket {
 
   public static void sendVideoSizeEvent() throws IOException {
     ByteBuffer byteBuffer = ByteBuffer.allocate(9);
-    byteBuffer.put((byte) 3);
+    byteBuffer.put(EVENT_VIDEO_SIZE);
     byteBuffer.putInt(Device.videoSize.first);
     byteBuffer.putInt(Device.videoSize.second);
     byteBuffer.flip();
@@ -80,6 +96,4 @@ public final class ControlPacket {
     String text = new String(textBytes, StandardCharsets.UTF_8);
     Device.setClipboardText(text);
   }
-
 }
-

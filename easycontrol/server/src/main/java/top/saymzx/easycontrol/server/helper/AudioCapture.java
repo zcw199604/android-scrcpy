@@ -30,7 +30,7 @@ public final class AudioCapture {
   public static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
   private static final int BYTES_PER_SAMPLE = 2;
   public static final int AUDIO_PACKET_SIZE = SAMPLE_RATE * CHANNELS * BYTES_PER_SAMPLE * 40 / 1000;
-  private static final int MINI_BUFFER_SIZE = Math.min(AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, ENCODING), AUDIO_PACKET_SIZE * 4);
+  private static final int MINI_BUFFER_SIZE = Math.max(AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, ENCODING), AUDIO_PACKET_SIZE * 4);
 
   public static AudioRecord init() {
     AudioRecord recorder;

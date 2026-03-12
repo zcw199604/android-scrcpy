@@ -14,3 +14,6 @@ easycontrol/server/.gradle
 
 easycontrol/app/src/main/java/top/saymzx/easycontrol/app/helper/ActiveHelper.java
 easycontrol/cloud
+
+/.local-jdks/
+/.android-sdk/

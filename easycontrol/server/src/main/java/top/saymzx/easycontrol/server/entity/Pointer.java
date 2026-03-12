@@ -5,17 +5,17 @@ package top.saymzx.easycontrol.server.entity;
 
 public final class Pointer {
 
-  public int id;
-
+  public final int pointerId;
+  public final int localId;
   public float x;
-
   public float y;
+  public float pressure = 1f;
+  public boolean up;
+  public final long downTime;
 
-  public long downTime;
-
-  public Pointer(int id, long downTime) {
-    this.id = id;
+  public Pointer(int pointerId, int localId, long downTime) {
+    this.pointerId = pointerId;
+    this.localId = localId;
     this.downTime = downTime;
   }
-
 }
