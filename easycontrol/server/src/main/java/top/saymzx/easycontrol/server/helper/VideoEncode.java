@@ -4,6 +4,7 @@
 package top.saymzx.easycontrol.server.helper;
 
 import android.graphics.Rect;
+import android.hardware.display.VirtualDisplay;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
@@ -13,12 +14,12 @@ import android.system.ErrnoException;
 import android.view.Surface;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 
 import top.saymzx.easycontrol.server.Server;
 import top.saymzx.easycontrol.server.entity.Device;
 import top.saymzx.easycontrol.server.entity.Options;
+import top.saymzx.easycontrol.server.wrappers.DisplayManager;
 import top.saymzx.easycontrol.server.wrappers.SurfaceControl;
 
 public final class VideoEncode {
@@ -27,13 +28,14 @@ public final class VideoEncode {
   public static volatile boolean isHasChangeConfig = false;
   private static boolean useH265;
   private static IBinder display;
+  private static VirtualDisplay virtualDisplay;
   private static Surface surface;
   private static final MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
 
   private VideoEncode() {
   }
 
-  public static void init() throws InvocationTargetException, NoSuchMethodException, IllegalAccessException, IOException, ErrnoException {
+  public static void init() throws Exception {
     useH265 = Options.supportH265 && EncodecTools.isSupportH265();
     ByteBuffer byteBuffer = ByteBuffer.allocate(9);
     byteBuffer.put((byte) (useH265 ? 1 : 0));
@@ -42,8 +44,6 @@ public final class VideoEncode {
     byteBuffer.flip();
     Server.writeVideo(byteBuffer);
 
-    display = SurfaceControl.createDisplay("easycontrol",
-      Build.VERSION.SDK_INT < Build.VERSION_CODES.R || (Build.VERSION.SDK_INT == Build.VERSION_CODES.R && !"S".equals(Build.VERSION.CODENAME)));
     createEncodecFormat();
     startEncode();
   }
@@ -64,7 +64,7 @@ public final class VideoEncode {
     encodecFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
   }
 
-  public static void startEncode() throws InvocationTargetException, NoSuchMethodException, IllegalAccessException, IOException, ErrnoException {
+  public static void startEncode() throws Exception {
     if (encedec == null) {
       return;
     }
@@ -73,8 +73,31 @@ public final class VideoEncode {
     encodecFormat.setInteger(MediaFormat.KEY_HEIGHT, Device.videoSize.second);
     encedec.configure(encodecFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
     surface = encedec.createInputSurface();
-    setDisplaySurface(display, surface);
+    createDisplay(surface);
     encedec.start();
+  }
+
+  private static void createDisplay(Surface surface) throws Exception {
+    releaseDisplay();
+    Exception displayManagerException = null;
+    try {
+      virtualDisplay = DisplayManager.createVirtualDisplay("easycontrol", Device.videoSize.first, Device.videoSize.second, Device.displayInfo.getDisplayId(), surface);
+      System.out.println("Display: using DisplayManager API");
+      return;
+    } catch (Exception e) {
+      displayManagerException = e;
+      System.out.println("Display: DisplayManager API unavailable, fallback to SurfaceControl");
+    }
+
+    try {
+      display = SurfaceControl.createDisplay("easycontrol",
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.R || (Build.VERSION.SDK_INT == Build.VERSION_CODES.R && !"S".equals(Build.VERSION.CODENAME)));
+      setDisplaySurface(display, surface);
+      System.out.println("Display: using SurfaceControl API");
+    } catch (Exception e) {
+      if (displayManagerException != null) e.addSuppressed(displayManagerException);
+      throw e;
+    }
   }
 
   public static void stopEncode() {
@@ -98,7 +121,7 @@ public final class VideoEncode {
     }
   }
 
-  private static void setDisplaySurface(IBinder display, Surface surface) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+  private static void setDisplaySurface(IBinder display, Surface surface) throws Exception {
     SurfaceControl.openTransaction();
     try {
       SurfaceControl.setDisplaySurface(display, surface);
@@ -131,12 +154,23 @@ public final class VideoEncode {
 
   public static void release() {
     stopEncode();
+    releaseDisplay();
     if (encedec != null) {
       try {
         encedec.release();
       } catch (Exception ignored) {
       }
       encedec = null;
+    }
+  }
+
+  private static void releaseDisplay() {
+    if (virtualDisplay != null) {
+      try {
+        virtualDisplay.release();
+      } catch (Exception ignored) {
+      }
+      virtualDisplay = null;
     }
     if (display != null) {
       try {

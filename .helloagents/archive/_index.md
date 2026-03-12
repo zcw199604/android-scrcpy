@@ -6,6 +6,7 @@
 
 | 时间戳 | 名称 | 类型 | 涉及模块 | 决策 | 结果 |
 |--------|------|------|---------|------|------|
+| 202603121301 | surfacecontrol-display-fallback | implementation | easycontrol_server, repository_docs | surfacecontrol-display-fallback#D001 | ✅完成 |
 | 202603121200 | runtime-log-view | implementation | easycontrol_app, repository_docs | runtime-log-view#D001 | ✅完成 |
 | 202603121142 | force-adb-forward-connect | implementation | easycontrol_app, repository_docs | force-adb-forward-connect#D001 | ✅完成 |
 | 202603120724 | scrcpy-v334-official-sync | implementation | easycontrol_server, easycontrol_app, repository_docs | scrcpy-v334-official-sync#D001 | ⚠️部分完成 |
@@ -20,6 +21,7 @@
 ## 按月归档
 
 ### 2026-03
+- [202603121301_surfacecontrol-display-fallback](./2026-03/202603121301_surfacecontrol-display-fallback/) - 修复部分 Android 15 / 厂商 ROM 上 `SurfaceControl.createDisplay(String, boolean)` 缺失导致的 server 启动后断开
 - [202603121200_runtime-log-view](./2026-03/202603121200_runtime-log-view/) - 新增应用内运行日志查看界面，并把关键运行日志保存在进程内存中
 - [202603121142_force-adb-forward-connect](./2026-03/202603121142_force-adb-forward-connect/) - 为网络设备新增“强制走 ADB forward”连接时配置项，跳过 direct socket 直连
 - [202603120724_scrcpy-v334-official-sync](./2026-03/202603120724_scrcpy-v334-official-sync/) - 同步 scrcpy v3.3.4 兼容层与构建链路，保留 Easycontrol 现有 app_process / 双 socket / ControlPacket / raw 打包契约

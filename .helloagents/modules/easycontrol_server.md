@@ -14,6 +14,7 @@
 | `ControlPacket.sendVideoEvent(long, ByteBuffer)` | `pts`, `data` | `void` | 向视频 socket 写入带时间戳的视频帧数据。 |
 | `ControlPacket.sendAudioEvent(ByteBuffer)` | `data` | `void` | 向主 socket 写入音频数据包。 |
 | `ControlPacket.handleTouchEvent()` | 无 | `void` | 从主 socket 读取触摸事件并转发到 `Device.touchEvent(...)`。 |
+| `VideoEncode.startEncode()` | 无 | `void` | 创建编码输入 Surface，并按兼容策略选择 `DisplayManager` 或 `SurfaceControl` 显示输出路径。 |
 
 ### 数据结构
 | 字段/类型 | 位置 | 说明 |
@@ -56,6 +57,7 @@
   - `InputManager` / `WindowManager` / `SurfaceControl` / `DisplayManager` / `DisplayInfo`：新版显示、旋转、电源、IME 与 Android 14+ physical display 兼容能力
   - `Device` / `Pointer` / `PointersState`：多指顺序与 localId 分离，保持现有触控协议不变
   - `VideoEncode` / `AudioEncode` / `AudioCapture`：重配释放、真实音频读取长度、时间戳与缓冲区大小修正
+- `VideoEncode` 现已优先尝试 `DisplayManager` 显示 API，并在不可用时自动回退到 `SurfaceControl`，用于兼容部分 Android 15 / 厂商 ROM 上缺失 `SurfaceControl.createDisplay(String, boolean)` 的情况。
 
 ### 当前阻断
 - 仓库内 JDK 17 + Android SDK 已补齐，`./gradlew :server:compileDebugJavaWithJavac`、`./gradlew :server:assembleDebug :server:copyDebug :app:assembleDebug` 与 `./gradlew :app:assembleDebug` 均已通过。
