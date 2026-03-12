@@ -21,10 +21,10 @@ import top.saymzx.easycontrol.app.entity.Device;
 
 public class MyBroadcastReceiver extends BroadcastReceiver {
 
-  public static final String ACTION_UPDATE_USB = "top.saymzx.easycontrol.app.UPDATE_USB";
-  private static final String ACTION_USB_PERMISSION = "top.saymzx.easycontrol.app.USB_PERMISSION";
-  public static final String ACTION_UPDATE_DEVICE_LIST = "top.saymzx.easycontrol.app.UPDATE_DEVICE_LIST";
-  public static final String ACTION_CONTROL = "top.saymzx.easycontrol.app.CONTROL";
+  public static final String ACTION_UPDATE_USB = "top.zcw.control.app.UPDATE_USB";
+  private static final String ACTION_USB_PERMISSION = "top.zcw.control.app.USB_PERMISSION";
+  public static final String ACTION_UPDATE_DEVICE_LIST = "top.zcw.control.app.UPDATE_DEVICE_LIST";
+  public static final String ACTION_CONTROL = "top.zcw.control.app.CONTROL";
   private static final String ACTION_SCREEN_OFF = "android.intent.action.SCREEN_OFF";
 
   private DeviceListAdapter deviceListAdapter;

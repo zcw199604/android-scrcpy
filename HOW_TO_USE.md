@@ -64,7 +64,7 @@
 		- 子网地址：\*netAddress\*，如子网为192.168.43.0/24, 则“\*netAddress\*.1:5555”表示“192.168.43.1:5555”
 	
 4. 扩展使用
-	易控支持在外部使用广播控制，广播地址为："top.saymzx.easycontrol.app.CONTROL"，需要向意向也就是Intent填入想要做的动作：
+	易控支持在外部使用广播控制，广播地址为："top.zcw.control.app.CONTROL"，需要向意向也就是Intent填入想要做的动作：
 	- 启动目标设备：
 		- action：start
 		- uuid：设备ID
