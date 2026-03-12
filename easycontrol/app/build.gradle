@@ -2,6 +2,78 @@ plugins {
   id 'com.android.application' version '8.2.2'
 }
 
+def normalizeReleaseSigningValue = { value ->
+  def trimmed = value?.toString()?.trim()
+  trimmed ? trimmed : null
+}
+
+def resolveReleaseSigningValue = { List<String> gradlePropertyNames, List<String> environmentNames ->
+  for (def propertyName : gradlePropertyNames) {
+    def propertyValue = normalizeReleaseSigningValue(findProperty(propertyName))
+    if (propertyValue != null) {
+      return propertyValue
+    }
+  }
+  for (def environmentName : environmentNames) {
+    def environmentValue = normalizeReleaseSigningValue(System.getenv(environmentName))
+    if (environmentValue != null) {
+      return environmentValue
+    }
+  }
+  return null
+}
+
+def releaseSigningConfig = [
+  storeFile    : resolveReleaseSigningValue(
+    ['releaseStoreFile', 'RELEASE_STORE_FILE', 'EC_RELEASE_STORE_FILE'],
+    ['EC_RELEASE_STORE_FILE', 'RELEASE_STORE_FILE', 'ANDROID_KEYSTORE_FILE', 'ANDROID_KEYSTORE_PATH']
+  ),
+  storePassword: resolveReleaseSigningValue(
+    ['releaseStorePassword', 'RELEASE_STORE_PASSWORD', 'EC_RELEASE_STORE_PASSWORD'],
+    ['EC_RELEASE_STORE_PASSWORD', 'RELEASE_STORE_PASSWORD', 'ANDROID_KEYSTORE_PASSWORD']
+  ),
+  keyAlias     : resolveReleaseSigningValue(
+    ['releaseKeyAlias', 'RELEASE_KEY_ALIAS', 'EC_RELEASE_KEY_ALIAS'],
+    ['EC_RELEASE_KEY_ALIAS', 'RELEASE_KEY_ALIAS', 'ANDROID_KEY_ALIAS']
+  ),
+  keyPassword  : resolveReleaseSigningValue(
+    ['releaseKeyPassword', 'RELEASE_KEY_PASSWORD', 'EC_RELEASE_KEY_PASSWORD'],
+    ['EC_RELEASE_KEY_PASSWORD', 'RELEASE_KEY_PASSWORD', 'ANDROID_KEY_PASSWORD']
+  )
+]
+
+def hasCompleteReleaseSigningConfig = releaseSigningConfig.values().every { it != null }
+
+def validateReleaseSigningConfig = {
+  def signingInputs = [
+    storeFile    : [label: 'keystore 文件路径', gradleProperties: ['releaseStoreFile', 'RELEASE_STORE_FILE', 'EC_RELEASE_STORE_FILE'], environmentVariables: ['EC_RELEASE_STORE_FILE', 'RELEASE_STORE_FILE', 'ANDROID_KEYSTORE_FILE', 'ANDROID_KEYSTORE_PATH']],
+    storePassword: [label: 'keystore 密码', gradleProperties: ['releaseStorePassword', 'RELEASE_STORE_PASSWORD', 'EC_RELEASE_STORE_PASSWORD'], environmentVariables: ['EC_RELEASE_STORE_PASSWORD', 'RELEASE_STORE_PASSWORD', 'ANDROID_KEYSTORE_PASSWORD']],
+    keyAlias     : [label: 'key alias', gradleProperties: ['releaseKeyAlias', 'RELEASE_KEY_ALIAS', 'EC_RELEASE_KEY_ALIAS'], environmentVariables: ['EC_RELEASE_KEY_ALIAS', 'RELEASE_KEY_ALIAS', 'ANDROID_KEY_ALIAS']],
+    keyPassword  : [label: 'key 密码', gradleProperties: ['releaseKeyPassword', 'RELEASE_KEY_PASSWORD', 'EC_RELEASE_KEY_PASSWORD'], environmentVariables: ['EC_RELEASE_KEY_PASSWORD', 'RELEASE_KEY_PASSWORD', 'ANDROID_KEY_PASSWORD']]
+  ]
+
+  def missingItems = signingInputs.findResults { key, metadata ->
+    if (releaseSigningConfig[key] != null) {
+      return null
+    }
+    def gradleProperties = metadata.gradleProperties.collect { "`${it}`" }.join(', ')
+    def environmentVariables = metadata.environmentVariables.collect { "`${it}`" }.join(', ')
+    return "${metadata.label}（Gradle 属性: ${gradleProperties}；环境变量: ${environmentVariables}）"
+  }
+
+  if (!missingItems.isEmpty()) {
+    throw new GradleException(
+      "Release 构建已禁止在缺少签名参数时继续执行，以避免产出不可安装 APK。\n" +
+      "请补齐以下签名配置后重试：\n- ${missingItems.join('\n- ')}"
+    )
+  }
+
+  def keystoreFile = file(releaseSigningConfig.storeFile)
+  if (!keystoreFile.exists()) {
+    throw new GradleException("Release keystore 不存在: ${keystoreFile}。请检查 releaseStoreFile/RELEASE_STORE_FILE/EC_RELEASE_STORE_FILE 配置。")
+  }
+}
+
 android {
   namespace 'top.saymzx.easycontrol.app'
   compileSdk 34
@@ -14,6 +86,17 @@ android {
     versionName "1.5.7"
     ndk {
       abiFilters "arm64-v8a", "armeabi-v7a", "x86", "x86_64"
+    }
+  }
+
+  signingConfigs {
+    if (hasCompleteReleaseSigningConfig) {
+      release {
+        storeFile file(releaseSigningConfig.storeFile)
+        storePassword releaseSigningConfig.storePassword
+        keyAlias releaseSigningConfig.keyAlias
+        keyPassword releaseSigningConfig.keyPassword
+      }
     }
   }
 
@@ -34,6 +117,9 @@ android {
       minifyEnabled true
       shrinkResources true
       proguardFiles 'proguard-rules.pro'
+      if (hasCompleteReleaseSigningConfig) {
+        signingConfig signingConfigs.release
+      }
     }
   }
 
@@ -45,8 +131,15 @@ android {
   packagingOptions {
     resources.excludes.add("META-INF/*")
   }
-
+}
+dependencies {
 }
 
-dependencies {
+gradle.taskGraph.whenReady { taskGraph ->
+  def hasAppReleaseTask = taskGraph.allTasks.any { task ->
+    task.project == project && task.name.toLowerCase().contains('release')
+  }
+  if (hasAppReleaseTask) {
+    validateReleaseSigningConfig()
+  }
 }

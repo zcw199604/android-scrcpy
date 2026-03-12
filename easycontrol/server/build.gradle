@@ -2,6 +2,29 @@ plugins {
   id 'com.android.application' version '8.2.2'
 }
 
+def resolveReleaseApk = {
+  def releaseDirectory = file("${buildDir}/outputs/apk/release")
+  def preferredCandidates = [
+    new File(releaseDirectory, "${project.name}-release.apk"),
+    new File(releaseDirectory, "${project.name}-release-unsigned.apk")
+  ]
+
+  def resolvedApk = preferredCandidates.find { it.exists() }
+  if (resolvedApk == null && releaseDirectory.exists()) {
+    resolvedApk = releaseDirectory.listFiles()?.findAll { file ->
+      file.isFile() && file.name.endsWith('.apk') && file.name.contains('-release')
+    }?.sort { file ->
+      file.name.endsWith('-unsigned.apk') ? 1 : 0
+    }?.first()
+  }
+
+  if (resolvedApk == null || !resolvedApk.exists()) {
+    throw new GradleException("未找到 server release APK。已兼容 signed/unsigned 输出文件名，查找目录: ${releaseDirectory}")
+  }
+
+  return resolvedApk
+}
+
 android {
   namespace 'top.saymzx.easycontrol.server'
   compileSdk 34
@@ -33,9 +56,9 @@ android {
 
   task copyRelease(type: Copy) {
     dependsOn 'assembleRelease'
-    from file('build/outputs/apk/release/server-release-unsigned.apk')
+    from { resolveReleaseApk() }
     into file('../app/src/main/res/raw/')
-    rename('server-release-unsigned.apk', 'easycontrol_server.jar')
+    rename { ignoredFileName -> 'easycontrol_server.jar' }
   }
 
   task copyDebug(type: Copy) {

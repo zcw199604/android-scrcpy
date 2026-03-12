@@ -84,13 +84,13 @@
 | `server` 模块产物需要通过 `:server:copyDebug` 或 `:server:copyRelease` 先复制为 `app/src/main/res/raw/easycontrol_server.jar` | Android 主控端依赖内嵌 server 载荷运行被控端逻辑，`ClientStream` 会读取 `R.raw.easycontrol_server` | `easycontrol/server/build.gradle`, `easycontrol/app/src/main/java/.../ClientStream.java` |
 | 当前执行环境未提供 Java / Android SDK，且 `bash ./gradlew :server:copyDebug` 已在 Gradle Wrapper 启动前失败 | `JAVA_HOME` 未设置且 PATH 中不存在 `java`，无法进入 Android 构建阶段 | 本次任务执行环境检测，`easycontrol/gradlew` |
 | `app` 与 `server` 之间没有显式 Gradle 模块依赖来自动生成 raw 资源 | 本地构建时需先执行 `:server:copyDebug` 或 `:server:copyRelease`，再打包 `app` | `easycontrol/server/build.gradle`, `ClientStream.java` |
-| GitHub tag release 发布链路需要沿用 release 构建顺序 | 发布场景应先执行 `:server:copyRelease`，再执行 `:app:assembleRelease`，以产出与当前源码一致的 release APK 资产；仓库已通过 `.github/workflows/android-release.yml` 固化该顺序 | `.github/workflows/android-release.yml`, `README.md`, `easycontrol/server/build.gradle` |
+| GitHub tag release 发布链路需要沿用 release 构建顺序并提供签名配置 | 发布场景应先执行 `:server:copyRelease`，再执行 `:app:assembleRelease`；`app` release 需通过 `EC_RELEASE_*` 参数完成签名，workflow 对应依赖 GitHub Secrets，且 GitHub Release 只公开发布 app APK | `.github/workflows/android-release.yml`, `README.md`, `easycontrol/app/build.gradle`, `easycontrol/server/build.gradle` |
 | 当前 Gradle 构建仅包含 `:app` 与 `:server` | `:cloud` 已不在当前构建中，历史 cloud/激活能力不应视为当前源码依赖 | `easycontrol/settings.gradle`, `modules/cloud.md` |
 
 ## 6. 已知技术债务
 
 | 债务描述 | 优先级 | 来源 | 建议处理时机 |
 |---------|--------|------|-------------|
-| 当前自动化范围主要覆盖 GitHub tag release 打包，尚未覆盖自动化测试链路 | P1 | `.github/workflows/android-release.yml`, `README.md` | 进行较大功能变更前补齐最小可运行验证链路 |
+| 当前自动化范围主要覆盖 GitHub tag release 打包，尚未覆盖自动化测试链路 | P1 | `.github/workflows/android-release.yml`, `README.md`, `easycontrol/app/build.gradle` | 进行较大功能变更前补齐最小可运行验证链路 |
 | 当前环境缺少 Java / Android SDK，且 `bash ./gradlew :server:copyDebug` 因 `JAVA_HOME is not set` 失败，难以在 CLI 中完成编译级回归 | P2 | 本次执行环境检测 | 需要正式验收或发布前在完整 Android 环境复验 |
 | `server` 产物复制到 `app` raw 目录依赖手动 Gradle 任务顺序 | P2 | `server/build.gradle` 与 `ClientStream.java` | 后续可考虑将该链路固化到统一构建任务中 |

@@ -60,6 +60,44 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
 
+      - name: Prepare release signing inputs
+        id: signing
+        env:
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          required_vars=(
+            ANDROID_RELEASE_KEYSTORE_BASE64
+            ANDROID_RELEASE_KEYSTORE_PASSWORD
+            ANDROID_RELEASE_KEY_ALIAS
+            ANDROID_RELEASE_KEY_PASSWORD
+          )
+
+          for var in "${required_vars[@]}"; do
+            if [[ -z "${!var:-}" ]]; then
+              echo "Missing required GitHub secret: ${var}" >&2
+              exit 1
+            fi
+          done
+
+          signing_dir="${RUNNER_TEMP}/android-signing"
+          keystore_path="${signing_dir}/release.keystore"
+          mkdir -p "${signing_dir}"
+          printf '%s' "${ANDROID_RELEASE_KEYSTORE_BASE64}" | base64 --decode > "${keystore_path}"
+
+          if [[ ! -s "${keystore_path}" ]]; then
+            echo 'Decoded keystore is empty.' >&2
+            exit 1
+          fi
+
+          chmod 600 "${keystore_path}"
+          echo "keystore_path=${keystore_path}" >> "${GITHUB_OUTPUT}"
+
       # 先生成并拷贝 server release 产物，再打 app release。
       - name: Build embedded server release payload
         working-directory: easycontrol
@@ -75,7 +113,34 @@ jobs:
           set -euo pipefail
           bash ./gradlew --no-daemon :app:assembleRelease
 
-      - name: Collect release APKs
+      - name: Locate apksigner
+        id: apksigner
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          apksigner_path=''
+
+          for sdk_root in "${ANDROID_SDK_ROOT:-}" "${ANDROID_HOME:-}" "${ANDROID_SDK_HOME:-}"; do
+            if [[ -z "${sdk_root}" || ! -d "${sdk_root}/build-tools" ]]; then
+              continue
+            fi
+
+            candidate="$(find "${sdk_root}/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -n 1 || true)"
+            if [[ -n "${candidate}" ]]; then
+              apksigner_path="${candidate}"
+              break
+            fi
+          done
+
+          if [[ -z "${apksigner_path}" ]]; then
+            echo 'apksigner not found under Android SDK build-tools.' >&2
+            exit 1
+          fi
+
+          echo "path=${apksigner_path}" >> "${GITHUB_OUTPUT}"
+
+      - name: Collect internal server artifacts
         env:
           SAFE_TAG: ${{ steps.vars.outputs.safe_tag }}
         shell: bash
@@ -83,48 +148,98 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
 
-          mkdir -p dist
-          app_apks=(easycontrol/app/build/outputs/apk/release/*.apk)
+          mkdir -p dist/internal
           server_apks=(easycontrol/server/build/outputs/apk/release/*.apk)
-
-          if (( ${#app_apks[@]} == 0 )); then
-            echo 'No app release APK found.' >&2
-            exit 1
-          fi
 
           if (( ${#server_apks[@]} == 0 )); then
             echo 'No server release APK found.' >&2
             exit 1
           fi
 
-          for apk in "${app_apks[@]}"; do
-            cp "${apk}" "dist/${SAFE_TAG}-app-$(basename "${apk}")"
-          done
-
           for apk in "${server_apks[@]}"; do
-            cp "${apk}" "dist/${SAFE_TAG}-server-$(basename "${apk}")"
+            cp "${apk}" "dist/internal/${SAFE_TAG}-server-$(basename "${apk}")"
           done
 
-          ls -lah dist
+          embedded_server='easycontrol/app/src/main/res/raw/easycontrol_server.jar'
+          if [[ -f "${embedded_server}" ]]; then
+            cp "${embedded_server}" "dist/internal/${SAFE_TAG}-easycontrol_server.jar"
+          fi
 
-      - name: Upload workflow artifacts
+          ls -lah dist/internal
+
+      - name: Sign and collect app release APK
+        env:
+          SAFE_TAG: ${{ steps.vars.outputs.safe_tag }}
+          APKSIGNER_PATH: ${{ steps.apksigner.outputs.path }}
+          KEYSTORE_PATH: ${{ steps.signing.outputs.keystore_path }}
+          ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          mkdir -p dist/public
+          unsigned_apks=(easycontrol/app/build/outputs/apk/release/*-unsigned.apk)
+          all_apks=(easycontrol/app/build/outputs/apk/release/*.apk)
+
+          if (( ${#all_apks[@]} == 0 )); then
+            echo 'No app release APK found.' >&2
+            exit 1
+          fi
+
+          if (( ${#unsigned_apks[@]} > 0 )); then
+            source_apk="${unsigned_apks[0]}"
+          elif (( ${#all_apks[@]} == 1 )); then
+            source_apk="${all_apks[0]}"
+          else
+            echo "Expected exactly one app release APK, found ${#all_apks[@]}." >&2
+            printf ' - %s
+' "${all_apks[@]}" >&2
+            exit 1
+          fi
+
+          output_apk="dist/public/${SAFE_TAG}-app-release.apk"
+
+          if "${APKSIGNER_PATH}" verify "${source_apk}" >/dev/null 2>&1; then
+            cp "${source_apk}" "${output_apk}"
+          else
+            "${APKSIGNER_PATH}" sign               --ks "${KEYSTORE_PATH}"               --ks-key-alias "${ANDROID_RELEASE_KEY_ALIAS}"               --ks-pass "pass:${ANDROID_RELEASE_KEYSTORE_PASSWORD}"               --key-pass "pass:${ANDROID_RELEASE_KEY_PASSWORD}"               --out "${output_apk}"               "${source_apk}"
+          fi
+
+          "${APKSIGNER_PATH}" verify "${output_apk}"
+          ls -lah dist/public
+
+      - name: Upload internal server artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: android-release-${{ steps.vars.outputs.safe_tag }}
-          path: dist/*
+          name: android-release-server-${{ steps.vars.outputs.safe_tag }}
+          path: dist/internal/*
           if-no-files-found: error
           retention-days: 14
 
-      - name: Publish assets to GitHub Release
+      - name: Publish app APK to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: ${{ steps.vars.outputs.tag }}
+          SAFE_TAG: ${{ steps.vars.outputs.safe_tag }}
         shell: bash
         run: |
           set -euo pipefail
 
           if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
-            gh release upload "${TAG_NAME}" dist/* --clobber
+            mapfile -t existing_assets < <(gh release view "${TAG_NAME}" --json assets --jq '.assets[].name')
+
+            for asset in "${existing_assets[@]}"; do
+              case "${asset}" in
+                "${SAFE_TAG}-app-"*|"${SAFE_TAG}-server-"*|"${SAFE_TAG}-easycontrol_server.jar")
+                  gh release delete-asset "${TAG_NAME}" "${asset}" --yes
+                  ;;
+              esac
+            done
+
+            gh release upload "${TAG_NAME}" dist/public/* --clobber
           else
-            gh release create "${TAG_NAME}" dist/* --title "${TAG_NAME}" --generate-notes --verify-tag
+            gh release create "${TAG_NAME}" dist/public/* --title "${TAG_NAME}" --generate-notes --verify-tag
           fi

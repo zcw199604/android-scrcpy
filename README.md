@@ -69,7 +69,7 @@ cd easycontrol
 bash ./gradlew :server:copyRelease :app:assembleRelease
 ```
 
-仓库中的 `.github/workflows/android-release.yml` 会在推送任意 tag 时自动执行，也支持在 GitHub Actions 页面手工指定 tag 重新打包。该流程会把 release APK 作为当前 tag 对应的 GitHub Release 资产上传；本地调试与日常开发仍以上述 debug 构建命令为准。
+仓库中的 `.github/workflows/android-release.yml` 会在推送任意 tag 时自动执行，也支持在 GitHub Actions 页面手工指定 tag 重新打包。该流程要求你先在 GitHub 仓库 Secrets 中配置 `ANDROID_SIGNING_KEYSTORE_BASE64`、`ANDROID_SIGNING_STORE_PASSWORD`、`ANDROID_SIGNING_KEY_ALIAS`、`ANDROID_SIGNING_KEY_PASSWORD`，然后才会生成可安装的已签名 app release APK。GitHub Release 页面只公开发布主控端 app APK；`server` 产物仅保留在 workflow artifact 中供维护者排查使用。本地调试与日常开发仍以上述 debug 构建命令为准。
 
 ## 反馈
 请在Github或Gitee提出Issue，或进入易控反馈群反馈BUG或建议。

@@ -2,7 +2,7 @@
 
 ## 职责
 
-负责仓库根目录的人类可读文档与图片素材，包括项目简介、使用说明、开源版构建说明、GitHub tag release / GitHub Release 资产说明、项目支持/历史发行版差异说明、隐私政策以及截图/提示图片引用。
+负责仓库根目录的人类可读文档与图片素材，包括项目简介、使用说明、开源版构建说明、GitHub tag release / GitHub Release 资产与签名要求说明、项目支持/历史发行版差异说明、隐私政策以及截图/提示图片引用。
 
 ## 接口定义（可选）
 
@@ -11,7 +11,7 @@
 ### 文档入口
 | 文档/资源 | 位置 | 说明 |
 |----------|------|------|
-| README | `README.md` | 项目简介、开源版构建说明、GitHub tag release 发布说明与使用入口 |
+| README | `README.md` | 项目简介、开源版构建说明、GitHub tag release 发布/签名说明与使用入口 |
 | HOW_TO_USE | `HOW_TO_USE.md` | 连接、投屏、界面操作说明 |
 | DONATE | `DONATE.md` | 项目支持说明 / 历史发行版差异（非激活前置） |
 | PRIVACY | `PRIVACY.md` | 隐私政策 |
@@ -31,12 +31,12 @@
 
 ### 构建说明核实
 **条件**: 需要本地构建或排查开源版与官方版差异。
-**行为**: 优先检查 `README.md` 的“构建”段、`easycontrol/settings.gradle`、`easycontrol/server/build.gradle` 与实际目录结构；本地调试构建应先执行 `:server:copyDebug` 再执行 `:app:assembleDebug`，GitHub tag release 发布则沿用 `:server:copyRelease` → `:app:assembleRelease` 的 release 顺序生成 APK 资产，而本地 CLI 环境已在 `bash ./gradlew :server:copyDebug` 阶段因 `JAVA_HOME is not set` 失败。
+**行为**: 优先检查 `README.md` 的“构建”段、`easycontrol/settings.gradle`、`easycontrol/app/build.gradle`、`easycontrol/server/build.gradle` 与实际目录结构；本地调试构建应先执行 `:server:copyDebug` 再执行 `:app:assembleDebug`，GitHub tag release 发布则沿用 `:server:copyRelease` → `:app:assembleRelease` 的 release 顺序生成 APK 资产，同时要求提供 `EC_RELEASE_*` 签名参数，而本地 CLI 环境已在 `bash ./gradlew :server:copyDebug` 阶段因 `JAVA_HOME is not set` 失败。
 **结果**: 在动手修改构建链路前，先确认当前开源仓库的真实构建边界、发布/调试差异与历史残留差异。
 
 ### 发布说明核实
 **条件**: 需要确认当前仓库是否支持 GitHub 自动发布 APK。
-**行为**: 以 `README.md` 与 `.github/workflows/android-release.yml` 的发布说明为准；当前 GitHub 发布方式是推送任意 tag 自动打包，或在 Actions 页面手工指定 tag 重新打包，核心命令为 `bash ./gradlew :server:copyRelease :app:assembleRelease`，产物会作为当前 tag 对应的 GitHub Release 资产提供下载。
+**行为**: 以 `README.md`、`.github/workflows/android-release.yml` 与 `easycontrol/app/build.gradle` 的发布说明为准；当前 GitHub 发布方式是推送任意 tag 自动打包，或在 Actions 页面手工指定 tag 重新打包，核心命令为 `bash ./gradlew :server:copyRelease :app:assembleRelease`。release 构建前必须提供 GitHub Secrets/`EC_RELEASE_*` 签名参数；GitHub Release 只公开发布主控端 app APK，server 产物仅保留在 workflow artifact。
 **结果**: 不会再把当前仓库误判为“只有本地手工构建，没有 GitHub tag release 产物”。
 
 ## 依赖关系

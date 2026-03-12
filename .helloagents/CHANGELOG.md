@@ -7,6 +7,13 @@
   - 方案: 无（通过 `~init` 初始化）
   - 决策: 无
 
+## [1.6.1] - 2026-03-12
+
+### 修复
+- **[repository_docs]**: 修正 GitHub tag release APK 的签名与发布策略，避免继续公开发布不可安装或易误装的 APK 资产 — by zcw
+  - 方案: [202603120032_fix-release-apk-signing](archive/2026-03/202603120032_fix-release-apk-signing/)
+  - 决策: fix-release-apk-signing#D001(缺少签名配置时直接失败，而不是继续上传不可安装 APK)
+
 ## [1.6.0] - 2026-03-11
 
 ### 新增
@@ -31,4 +38,4 @@
 ## 基线版本
 - `easycontrol/app`: `versionCode 10507` / `versionName 1.5.7`
 - `easycontrol/server`: `versionCode 20000` / `versionName 2.0.0`
-- 当前知识库已累计归档 3 个 HelloAGENTS 方案包（见 `archive/_index.md`）。
+- 当前知识库已累计归档 5 个 HelloAGENTS 方案包（见 `archive/_index.md`）。
