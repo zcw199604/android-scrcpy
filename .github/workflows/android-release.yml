@@ -109,6 +109,11 @@ jobs:
       - name: Build app release APK
         working-directory: easycontrol
         shell: bash
+        env:
+          EC_RELEASE_STORE_FILE: ${{ steps.signing.outputs.keystore_path }}
+          EC_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          EC_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          EC_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
           bash ./gradlew --no-daemon :app:assembleRelease

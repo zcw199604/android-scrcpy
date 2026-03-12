@@ -36,7 +36,7 @@
 
 ### 发布说明核实
 **条件**: 需要确认当前仓库是否支持 GitHub 自动发布 APK。
-**行为**: 以 `README.md`、`.github/workflows/android-release.yml` 与 `easycontrol/app/build.gradle` 的发布说明为准；当前 GitHub 发布方式是推送任意 tag 自动打包，或在 Actions 页面手工指定 tag 重新打包，核心命令为 `bash ./gradlew :server:copyRelease :app:assembleRelease`。release 构建前必须提供 GitHub Secrets/`EC_RELEASE_*` 签名参数；GitHub Release 只公开发布主控端 app APK，server 产物仅保留在 workflow artifact。
+**行为**: 以 `README.md`、`.github/workflows/android-release.yml` 与 `easycontrol/app/build.gradle` 的发布说明为准；当前 GitHub 发布方式是推送任意 tag 自动打包，或在 Actions 页面手工指定 tag 重新打包，核心命令为 `bash ./gradlew :server:copyRelease :app:assembleRelease`。release 构建前必须提供 `ANDROID_RELEASE_*` GitHub Secrets，workflow 会将解码后的 keystore 路径和密码/alias 映射为 Gradle 读取的 `EC_RELEASE_*` 环境变量；GitHub Release 只公开发布主控端 app APK，server 产物仅保留在 workflow artifact。
 **结果**: 不会再把当前仓库误判为“只有本地手工构建，没有 GitHub tag release 产物”。
 
 ## 依赖关系
