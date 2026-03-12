@@ -6,6 +6,7 @@
 
 | 时间戳 | 名称 | 类型 | 涉及模块 | 决策 | 结果 |
 |--------|------|------|---------|------|------|
+| 202603120206 | publish-v0-2-tag | implementation | repository_docs | publish-v0-2-tag#D001 | ✅完成 |
 | 202603120131 | commit-release-signing-fix | implementation | repository_docs | commit-release-signing-fix#D001 | ✅完成 |
 | 202603120032 | fix-release-apk-signing | implementation | repository_docs | fix-release-apk-signing#D001 | ✅完成 |
 | 202603111523 | publish-v0-1-tag | implementation | repository_docs | publish-v0.1-tag#D001 | ✅完成 |
@@ -16,6 +17,7 @@
 ## 按月归档
 
 ### 2026-03
+- [202603120206_publish-v0-2-tag](./2026-03/202603120206_publish-v0-2-tag/) - 将归档补充提交推送到 origin/main，并创建发布标签 v0.2
 - [202603120131_commit-release-signing-fix](./2026-03/202603120131_commit-release-signing-fix/) - 将当前未提交的 release 签名修复与归档内容一次性创建为本地提交
 - [202603120032_fix-release-apk-signing](./2026-03/202603120032_fix-release-apk-signing/) - 修正 GitHub tag release APK 的签名与发布策略，避免继续公开发布不可安装或易误装的 APK 资产
 - [202603111523_publish-v0-1-tag](./2026-03/202603111523_publish-v0-1-tag/) - 将当前工作区改动提交推送到 origin/main，并创建发布标签 v0.1

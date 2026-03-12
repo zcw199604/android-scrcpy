@@ -7,6 +7,12 @@
   - 方案: 无（通过 `~init` 初始化）
   - 决策: 无
 
+
+### 快速修改
+- **[repository_docs]**: 修复 GitHub Actions 发布工作流的 YAML 语法错误，恢复 `android-release.yml` 可解析状态 — by zcw
+  - 类型: 快速修改（无方案包）
+  - 文件: .github/workflows/android-release.yml:196-213
+
 ## [1.6.1] - 2026-03-12
 
 ### 修复

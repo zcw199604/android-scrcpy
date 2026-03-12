@@ -195,8 +195,7 @@ jobs:
             source_apk="${all_apks[0]}"
           else
             echo "Expected exactly one app release APK, found ${#all_apks[@]}." >&2
-            printf ' - %s
-' "${all_apks[@]}" >&2
+            printf ' - %s\n' "${all_apks[@]}" >&2
             exit 1
           fi
 
@@ -205,7 +204,13 @@ jobs:
           if "${APKSIGNER_PATH}" verify "${source_apk}" >/dev/null 2>&1; then
             cp "${source_apk}" "${output_apk}"
           else
-            "${APKSIGNER_PATH}" sign               --ks "${KEYSTORE_PATH}"               --ks-key-alias "${ANDROID_RELEASE_KEY_ALIAS}"               --ks-pass "pass:${ANDROID_RELEASE_KEYSTORE_PASSWORD}"               --key-pass "pass:${ANDROID_RELEASE_KEY_PASSWORD}"               --out "${output_apk}"               "${source_apk}"
+            "${APKSIGNER_PATH}" sign \
+              --ks "${KEYSTORE_PATH}" \
+              --ks-key-alias "${ANDROID_RELEASE_KEY_ALIAS}" \
+              --ks-pass "pass:${ANDROID_RELEASE_KEYSTORE_PASSWORD}" \
+              --key-pass "pass:${ANDROID_RELEASE_KEY_PASSWORD}" \
+              --out "${output_apk}" \
+              "${source_apk}"
           fi
 
           "${APKSIGNER_PATH}" verify "${output_apk}"
