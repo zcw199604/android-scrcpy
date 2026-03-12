@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### 修复
+- **[easycontrol_app]**: 修复 release 包在 `versionCode` 不变时继续复用旧被控端 server.jar 的问题；`ClientStream` 现按 `versionCode + server载荷CRC` 生成远端文件名，确保新的内嵌 server 修复能真正下发到被控端 — by zcw
+  - 方案: [202603121316_server-jar-sync-fingerprint](archive/2026-03/202603121316_server-jar-sync-fingerprint/)
+  - 验证: `./gradlew :app:assembleDebug` 已通过
+
+### 修复
 - **[easycontrol_server]**: 修复部分 Android 15 / 厂商 ROM 上 `SurfaceControl.createDisplay(String, boolean)` 缺失导致的 server 启动后断开问题；`VideoEncode` 现优先尝试 `DisplayManager` 显示 API，失败后回退 `SurfaceControl` — by zcw
   - 方案: [202603121301_surfacecontrol-display-fallback](archive/2026-03/202603121301_surfacecontrol-display-fallback/)
   - 验证: `./gradlew :server:assembleDebug :server:copyDebug :app:assembleDebug` 已通过
@@ -72,4 +77,4 @@
 ## 基线版本
 - `easycontrol/app`: `versionCode 10507` / `versionName 1.5.7`
 - `easycontrol/server`: `versionCode 20000` / `versionName 2.0.0`
-- 当前知识库已累计归档 11 个 HelloAGENTS 方案包（见 `archive/_index.md`）。
+- 当前知识库已累计归档 12 个 HelloAGENTS 方案包（见 `archive/_index.md`）。

@@ -15,6 +15,7 @@ Android 主控端应用模块，负责设备列表管理、USB/网络 ADB 连接
 | `Client.sendAction(String, String, ByteBuffer, int)` | `uuid`, `action`, `byteBuffer`, `delay` | `void` | 向已建立的客户端会话发送控制动作。 |
 | `LogActivity.onResume()` | 无 | `void` | 刷新并展示当前进程内存中的运行日志。 |
 | `AdbTools.connectADB(Device)` | `device` | `Adb` | 为 USB/网络设备建立或复用 ADB 连接。 |
+| `ClientStream.startServer(Device)` | `device` | `void` | 根据内嵌 server 载荷生成带 CRC 指纹的远端文件名，并决定是否需要重新推送被控端 server。 |
 | `DbHelper.getAll()` | 无 | `ArrayList<Device>` | 读取已保存的设备配置列表。 |
 
 ### 数据结构
@@ -65,6 +66,7 @@ Android 主控端应用模块，负责设备列表管理、USB/网络 ADB 连接
 - `ControlPacket` 继续维持现有 1-9 控制协议格式，仅把协议常量与 main socket 事件常量显式化，便于与 server 侧对齐审计。
 - `ClientPlayer` 已改为复用统一事件常量解析 main socket 音频/剪贴板/视频尺寸事件；`VideoDecode` 与 `AudioDecode` 经静态审计后无需同步改动。
 - `ClientStream` / `Adb` 现已按“ADB 建连 / 调试授权 / server 连接 / 超时”阶段输出更明确的用户可见提示，不再直接展示 `java.lang.Exception` 文本。
+- `ClientStream` 现会根据 `R.raw.easycontrol_server` 的内容 CRC 生成被控端 server 文件名；即使 app `versionCode` 不变，只要内嵌 server 载荷变化，下一次连接也会自动重新推送。
 - 设置页在“查看本机IP”下方新增“查看运行日志”入口；`PublicTools` 会把关键运行日志同时写入 Logcat 与进程内缓冲，`LogActivity` 可直接查看最近启动/连接/断开日志。
 - 控制通道后台 `keepAlive` 失败导致断开时，客户端现仅提示“连接断开”，不再把内部动作名 `keepAlive` 暴露给用户。
 - 网络设备的“连接时操作”现新增“强制走 ADB 转发”开关；启用后会跳过 direct socket，直接通过 ADB forward 建立 main/video 双通道，便于规避部分无线局域网直连不稳定问题。

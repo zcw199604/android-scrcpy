@@ -4,6 +4,7 @@ import android.widget.Toast;
 
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
@@ -12,6 +13,7 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.zip.CRC32;
 
 import top.saymzx.easycontrol.app.BuildConfig;
 import top.saymzx.easycontrol.app.R;
@@ -54,7 +56,7 @@ public class ClientStream {
   private BufferStream shell;
   private Thread connectThread = null;
   private final AtomicBoolean connectResultHandled = new AtomicBoolean(false);
-  private static final String serverName = "/data/local/tmp/easycontrol_server_" + BuildConfig.VERSION_CODE + ".jar";
+  private static String cachedServerName;
   private static final boolean supportH265 = DecodecTools.isSupportH265();
   private static final boolean supportOpus = DecodecTools.isSupportOpus();
 
@@ -180,13 +182,29 @@ public class ClientStream {
     }
   }
 
+  private static synchronized String getServerName() {
+    if (cachedServerName != null) return cachedServerName;
+    String serverSuffix = String.valueOf(BuildConfig.VERSION_CODE);
+    try (InputStream inputStream = AppData.applicationContext.getResources().openRawResource(R.raw.easycontrol_server)) {
+      CRC32 crc32 = new CRC32();
+      byte[] buffer = new byte[8192];
+      int len;
+      while ((len = inputStream.read(buffer)) != -1) crc32.update(buffer, 0, len);
+      serverSuffix = BuildConfig.VERSION_CODE + "_" + Long.toHexString(crc32.getValue());
+    } catch (Exception ignored) {
+    }
+    cachedServerName = "/data/local/tmp/easycontrol_server_" + serverSuffix + ".jar";
+    return cachedServerName;
+  }
+
   // 启动Server
   private void startServer(Device device) throws Exception {
+    String serverName = getServerName();
     if (BuildConfig.ENABLE_DEBUG_FEATURE || !adb.runAdbCmd("ls /data/local/tmp/easycontrol_*").contains(serverName)) {
       PublicTools.logInfo("stream", device.name + " 正在同步被控端服务文件");
       adb.runAdbCmd("rm /data/local/tmp/easycontrol_* ");
       adb.pushFile(AppData.applicationContext.getResources().openRawResource(R.raw.easycontrol_server), serverName, null);
-    }
+    } else PublicTools.logInfo("stream", device.name + " 被控端服务文件已是最新版本");
     shell = adb.getShell();
     shell.write(ByteBuffer.wrap(("app_process -Djava.class.path=" + serverName + " / top.saymzx.easycontrol.server.Server"
       + " " + ARG_SERVER_PORT + "=" + device.serverPort
