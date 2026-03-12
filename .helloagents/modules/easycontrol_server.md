@@ -36,7 +36,7 @@
 
 ### 打包到主控端应用
 **条件**: 执行 `server` 模块的 `copyRelease` 或 `copyDebug` 任务。
-**行为**: 将生成的 APK 复制并重命名为 `app/src/main/res/raw/easycontrol_server.jar`。
+**行为**: `copyDebug` 直接复制 debug APK；`copyRelease` 会先执行 `assembleRelease`，再在任务执行阶段解析 signed/unsigned release APK，并复制重命名为 `app/src/main/res/raw/easycontrol_server.jar`。
 **结果**: 主控端 APK 可携带并分发 server 载荷。
 
 ## 依赖关系

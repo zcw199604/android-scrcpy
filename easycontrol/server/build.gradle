@@ -54,11 +54,17 @@ android {
     targetCompatibility JavaVersion.VERSION_1_8
   }
 
-  task copyRelease(type: Copy) {
+  task copyRelease {
     dependsOn 'assembleRelease'
-    from { resolveReleaseApk() }
-    into file('../app/src/main/res/raw/')
-    rename { ignoredFileName -> 'easycontrol_server.jar' }
+    inputs.dir(file("${buildDir}/outputs/apk/release"))
+    outputs.file(file('../app/src/main/res/raw/easycontrol_server.jar'))
+    doLast {
+      project.copy {
+        from resolveReleaseApk()
+        into file('../app/src/main/res/raw/')
+        rename { ignoredFileName -> 'easycontrol_server.jar' }
+      }
+    }
   }
 
   task copyDebug(type: Copy) {
