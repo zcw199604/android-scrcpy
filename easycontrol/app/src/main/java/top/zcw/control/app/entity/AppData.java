@@ -30,6 +30,7 @@ public class AppData {
 
   // 密钥文件
   public static AdbKeyPair keyPair;
+  public static AdbKeyPair appKeyPair;
 
   // 系统服务
   public static ClipboardManager clipBoard;
@@ -53,7 +54,8 @@ public class AppData {
     sensorManager = (SensorManager) applicationContext.getSystemService(Context.SENSOR_SERVICE);
     setting = new Setting(applicationContext.getSharedPreferences("setting", Context.MODE_PRIVATE));
     // 读取密钥
-    keyPair = PublicTools.readAdbKeyPair();
+    keyPair = PublicTools.readDefaultKeyPair();
+    appKeyPair = PublicTools.readAdbKeyPair();
   }
 
   public static void appendRuntimeLog(String logLine) {

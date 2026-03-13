@@ -86,6 +86,7 @@
 | `app` 与 `server` 仍通过复制 raw 资源共享内嵌 server 载荷 | `app` 模块已在 `preDebugBuild` / `preReleaseBuild` 显式依赖 `:server:copyDebug` / `:server:copyRelease`，从而保留 `R.raw.easycontrol_server` 打包方式，并继续满足 AGP 8.6.1 / API 35 构建链路下的显式任务依赖校验；`ClientStream` 现会按 `versionCode + server载荷CRC` 生成被控端文件名，避免同版本号下继续复用旧 server.jar | `easycontrol/app/build.gradle`, `easycontrol/server/build.gradle`, `ClientStream.java` |
 | GitHub tag release 发布链路需要沿用 release 构建顺序并提供签名配置 | 发布场景应先执行 `:server:copyRelease`，再执行 `:app:assembleRelease`；`app` release 需通过 `EC_RELEASE_*` 参数完成签名，workflow 对应依赖 GitHub Secrets，且 GitHub Release 只公开发布 app APK | `.github/workflows/android-release.yml`, `README.md`, `easycontrol/app/build.gradle`, `easycontrol/server/build.gradle` |
 | 当前 Gradle 构建仅包含 `:app` 与 `:server` | `:cloud` 已不在当前构建中，历史 cloud/激活能力不应视为当前源码依赖 | `easycontrol/settings.gradle`, `modules/cloud.md` |
+| 默认 ADB 密钥与软件独立密钥已分离 | `AppData.keyPair` 现优先从 `SharedPreferences(adb_key)` 读取默认密钥并兼容旧 `public.key/private.key` 文件迁移，`AppData.appKeyPair` 继续读取 app 私有文件；设备级 `useAppKey` 决定连接时使用哪把密钥，且 Manifest 已开启 `allowBackup=true` | `easycontrol/app/src/main/AndroidManifest.xml`, `AppData.java`, `PublicTools.java`, `AdbTools.java`, `DbHelper.java` |
 
 ## 6. 已知技术债务
 

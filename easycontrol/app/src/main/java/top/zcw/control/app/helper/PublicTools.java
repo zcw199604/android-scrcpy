@@ -2,6 +2,7 @@ package top.zcw.control.app.helper;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.util.Base64;
 import android.util.DisplayMetrics;
@@ -11,6 +12,7 @@ import android.view.Display;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -18,6 +20,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.Socket;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -183,25 +188,94 @@ public class PublicTools {
     return result;
   }
 
+  // 初始化AdbBase64
+  private static void ensureAdbBase64() {
+    AdbKeyPair.setAdbBase64(new AdbBase64() {
+      @Override
+      public String encodeToString(byte[] data) {
+        return Base64.encodeToString(data, Base64.DEFAULT);
+      }
+
+      @Override
+      public byte[] decode(byte[] data) {
+        return Base64.decode(data, Base64.DEFAULT);
+      }
+    });
+  }
+
   // 获取密钥文件
   public static Pair<File, File> getAdbKeyFile(Context context) {
     return new Pair<>(new File(context.getApplicationContext().getFilesDir(), "public.key"), new File(context.getApplicationContext().getFilesDir(), "private.key"));
   }
 
-  // 读取密钥
+  // 读取默认持久化密钥（SharedPreferences → 文件 → 生成新密钥）
+  public static AdbKeyPair readDefaultKeyPair() {
+    try {
+      ensureAdbBase64();
+      // 1. 尝试从SharedPreferences读取
+      AdbKeyPair fromPrefs = readKeyPairFromPrefs();
+      if (fromPrefs != null) return fromPrefs;
+      // 2. 尝试从文件读取（兼容旧版迁移）
+      Pair<File, File> adbKeyFile = getAdbKeyFile(AppData.applicationContext);
+      if (adbKeyFile.first.isFile() && adbKeyFile.second.isFile()) {
+        AdbKeyPair fromFile = AdbKeyPair.read(adbKeyFile.first, adbKeyFile.second);
+        saveKeyPairToPrefs(adbKeyFile.first, adbKeyFile.second);
+        return fromFile;
+      }
+      // 3. 生成新密钥并保存到两处
+      AdbKeyPair.generate(adbKeyFile.first, adbKeyFile.second);
+      saveKeyPairToPrefs(adbKeyFile.first, adbKeyFile.second);
+      return AdbKeyPair.read(adbKeyFile.first, adbKeyFile.second);
+    } catch (Exception ignored) {
+      return null;
+    }
+  }
+
+  // 保存密钥文件内容到SharedPreferences
+  private static void saveKeyPairToPrefs(File publicKeyFile, File privateKeyFile) {
+    try {
+      byte[] pubBytes = new byte[(int) publicKeyFile.length()];
+      try (FileInputStream stream = new FileInputStream(publicKeyFile)) {
+        stream.read(pubBytes);
+      }
+      byte[] priBytes = new byte[(int) privateKeyFile.length()];
+      try (FileInputStream stream = new FileInputStream(privateKeyFile)) {
+        stream.read(priBytes);
+      }
+      SharedPreferences prefs = AppData.applicationContext.getSharedPreferences("adb_key", Context.MODE_PRIVATE);
+      prefs.edit()
+        .putString("default_public_key", new String(pubBytes))
+        .putString("default_private_key", new String(priBytes))
+        .apply();
+    } catch (Exception ignored) {
+    }
+  }
+
+  // 从SharedPreferences读取密钥
+  private static AdbKeyPair readKeyPairFromPrefs() {
+    try {
+      SharedPreferences prefs = AppData.applicationContext.getSharedPreferences("adb_key", Context.MODE_PRIVATE);
+      String pubContent = prefs.getString("default_public_key", null);
+      String priContent = prefs.getString("default_private_key", null);
+      if (pubContent == null || priContent == null) return null;
+      // 构造公钥字节（与AdbKeyPair.read一致：内容+null终止符）
+      byte[] publicKeyBytes = new byte[pubContent.length() + 1];
+      System.arraycopy(pubContent.getBytes(), 0, publicKeyBytes, 0, pubContent.length());
+      publicKeyBytes[publicKeyBytes.length - 1] = 0;
+      // 构造私钥
+      String data = priContent.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replace("\n", "");
+      byte[] privateKeyBytes = Base64.decode(data, Base64.DEFAULT);
+      PrivateKey privateKey = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
+      return new AdbKeyPair(privateKey, publicKeyBytes);
+    } catch (Exception ignored) {
+      return null;
+    }
+  }
+
+  // 读取软件独立密钥（从文件）
   public static AdbKeyPair readAdbKeyPair() {
     try {
-      AdbKeyPair.setAdbBase64(new AdbBase64() {
-        @Override
-        public String encodeToString(byte[] data) {
-          return Base64.encodeToString(data, Base64.DEFAULT);
-        }
-
-        @Override
-        public byte[] decode(byte[] data) {
-          return Base64.decode(data, Base64.DEFAULT);
-        }
-      });
+      ensureAdbBase64();
       Pair<File, File> adbKeyFile = PublicTools.getAdbKeyFile(AppData.applicationContext);
       if (!adbKeyFile.first.isFile() || !adbKeyFile.second.isFile()) AdbKeyPair.generate(adbKeyFile.first, adbKeyFile.second);
       return AdbKeyPair.read(adbKeyFile.first, adbKeyFile.second);

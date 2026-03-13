@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import top.zcw.control.app.adb.Adb;
+import top.zcw.control.app.adb.AdbKeyPair;
 import top.zcw.control.app.entity.AppData;
 import top.zcw.control.app.entity.Device;
 import top.zcw.control.app.entity.MyInterface;
@@ -24,8 +25,9 @@ public class AdbTools {
     String addressId = device.isLinkDevice() ? device.address : device.address + ":" + device.adbPort;
     Adb adb = allAdbConnect.get(addressId);
     if (adb == null || adb.isClosed()) {
-      if (device.isLinkDevice()) adb = new Adb(usbDevicesList.get(addressId), AppData.keyPair);
-      else adb = new Adb(PublicTools.getIp(device.address), device.adbPort, AppData.keyPair);
+      AdbKeyPair keyPair = device.useAppKey ? AppData.appKeyPair : AppData.keyPair;
+      if (device.isLinkDevice()) adb = new Adb(usbDevicesList.get(addressId), keyPair);
+      else adb = new Adb(PublicTools.getIp(device.address), device.adbPort, keyPair);
       allAdbConnect.put(addressId, adb);
     }
     return adb;

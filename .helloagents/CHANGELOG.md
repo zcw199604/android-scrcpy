@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### 连接认证
+- **[easycontrol_app]**: 新增默认 ADB 密钥与软件独立密钥双轨策略；默认密钥优先从 `SharedPreferences` 读取并兼容旧文件迁移，设备可通过“使用软件独立密钥”切换到 app 私有密钥；同时开启 `allowBackup` 以为系统备份恢复默认密钥提供前提 — by zcw
+  - 方案: [202603130923_adb-key-backup-and-selection](archive/2026-03/202603130923_adb-key-backup-and-selection/)
+  - 验证: `./gradlew :app:assembleDebug` 已通过
+
 ### 构建链路
 - **[easycontrol_app, easycontrol_server]**: 将 Android 构建链路升级到 AGP `8.6.1` + Gradle `8.7`，并把 `app` / `server` 的 `compileSdk`、`targetSdk` 升级到 `35`；同时把 `BuildConfig` 开关迁移到 app 模块级 `buildFeatures`，消除 AGP 8.6 的构建弃用告警 — by zcw
   - 方案: [202603130854_sdk-35-upgrade](archive/2026-03/202603130854_sdk-35-upgrade/)
@@ -82,4 +87,4 @@
 ## 基线版本
 - `easycontrol/app`: `versionCode 10507` / `versionName 1.5.7`
 - `easycontrol/server`: `versionCode 20000` / `versionName 2.0.0`
-- 当前知识库已累计归档 13 个 HelloAGENTS 方案包（见 `archive/_index.md`）。
+- 当前知识库已累计归档 14 个 HelloAGENTS 方案包（见 `archive/_index.md`）。
