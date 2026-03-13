@@ -38,7 +38,7 @@
 ### 打包到主控端应用
 **条件**: 执行 `server` 模块的 `copyRelease` 或 `copyDebug` 任务。
 **行为**: `copyDebug` 直接复制 debug APK；`copyRelease` 会先执行 `assembleRelease`，再在任务执行阶段解析 signed/unsigned release APK，并复制重命名为 `app/src/main/res/raw/easycontrol_server.jar`；`app` 模块的 `preDebugBuild` / `preReleaseBuild` 已显式依赖对应 copy 任务。
-**结果**: 主控端 APK 可继续以内嵌 `R.raw.easycontrol_server` 的方式分发 server 载荷，并避免 AGP 8.2 的隐式依赖校验错误。
+**结果**: 主控端 APK 可继续以内嵌 `R.raw.easycontrol_server` 的方式分发 server 载荷，并继续满足 AGP 8.6.1 / API 35 构建链路下的显式任务依赖校验。
 
 ## 依赖关系
 
@@ -60,5 +60,5 @@
 - `VideoEncode` 现已优先尝试 `DisplayManager` 显示 API，并在不可用时自动回退到 `SurfaceControl`，用于兼容部分 Android 15 / 厂商 ROM 上缺失 `SurfaceControl.createDisplay(String, boolean)` 的情况。
 
 ### 当前阻断
-- 仓库内 JDK 17 + Android SDK 已补齐，`./gradlew :server:compileDebugJavaWithJavac`、`./gradlew :server:assembleDebug :server:copyDebug :app:assembleDebug` 与 `./gradlew :app:assembleDebug` 均已通过。
+- 仓库内 JDK 17 + Android SDK 35 已补齐，且已在 AGP 8.6.1 + Gradle 8.7 + compileSdk/targetSdk 35 组合下验证 `./gradlew :server:compileDebugJavaWithJavac` 与 `./gradlew :app:assembleDebug` 通过。
 - 真机回归（投屏、触控、音频、剪贴板、分辨率切换、旋转、背光、电源控制）待有设备环境后补齐。

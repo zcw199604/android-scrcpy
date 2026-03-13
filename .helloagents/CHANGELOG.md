@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### 构建链路
+- **[easycontrol_app, easycontrol_server]**: 将 Android 构建链路升级到 AGP `8.6.1` + Gradle `8.7`，并把 `app` / `server` 的 `compileSdk`、`targetSdk` 升级到 `35`；同时把 `BuildConfig` 开关迁移到 app 模块级 `buildFeatures`，消除 AGP 8.6 的构建弃用告警 — by zcw
+  - 方案: [202603130854_sdk-35-upgrade](archive/2026-03/202603130854_sdk-35-upgrade/)
+  - 验证: `./gradlew -version`、`./gradlew :app:assembleDebug` 已通过
+
 ### 修复
 - **[easycontrol_app]**: 修复 release 包在 `versionCode` 不变时继续复用旧被控端 server.jar 的问题；`ClientStream` 现按 `versionCode + server载荷CRC` 生成远端文件名，确保新的内嵌 server 修复能真正下发到被控端 — by zcw
   - 方案: [202603121316_server-jar-sync-fingerprint](archive/2026-03/202603121316_server-jar-sync-fingerprint/)
@@ -77,4 +82,4 @@
 ## 基线版本
 - `easycontrol/app`: `versionCode 10507` / `versionName 1.5.7`
 - `easycontrol/server`: `versionCode 20000` / `versionName 2.0.0`
-- 当前知识库已累计归档 12 个 HelloAGENTS 方案包（见 `archive/_index.md`）。
+- 当前知识库已累计归档 13 个 HelloAGENTS 方案包（见 `archive/_index.md`）。

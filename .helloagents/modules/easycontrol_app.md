@@ -72,4 +72,4 @@ Android 主控端应用模块，负责设备列表管理、USB/网络 ADB 连接
 - 网络设备的“连接时操作”现新增“强制走 ADB 转发”开关；启用后会跳过 direct socket，直接通过 ADB forward 建立 main/video 双通道，便于规避部分无线局域网直连不稳定问题。
 
 ### 当前阻断
-- 仓库内 JDK 17 + Android SDK 已补齐，`./gradlew :app:assembleDebug` 已可自动触发 `:server:copyDebug` 并完成联合构建；当前剩余阻断是真机播放/控制回归环境不足。
+- 仓库内 JDK 17 + Android SDK 35 已补齐，且已在 AGP 8.6.1 + Gradle 8.7 + compileSdk/targetSdk 35 组合下验证 `./gradlew :app:assembleDebug` 可自动触发 `:server:copyDebug` 并完成联合构建；当前剩余阻断是真机播放/控制回归环境不足。

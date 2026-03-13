@@ -1,5 +1,5 @@
 plugins {
-  id 'com.android.application' version '8.2.2'
+  id 'com.android.application' version '8.6.1'
 }
 
 def resolveReleaseApk = {
@@ -27,11 +27,11 @@ def resolveReleaseApk = {
 
 android {
   namespace 'top.zcw.control.server'
-  compileSdk 34
+  compileSdk 35
 
   defaultConfig {
     minSdk 21
-    targetSdk 34
+    targetSdk 35
     applicationId 'top.zcw.control.server'
     versionCode 20000
     versionName '2.0.0'

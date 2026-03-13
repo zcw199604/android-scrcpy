@@ -6,6 +6,7 @@
 
 | 时间戳 | 名称 | 类型 | 涉及模块 | 决策 | 结果 |
 |--------|------|------|---------|------|------|
+| 202603130854 | sdk-35-upgrade | implementation | easycontrol_app, easycontrol_server, repository_docs | sdk-35-upgrade#D001 | ✅完成 |
 | 202603121316 | server-jar-sync-fingerprint | implementation | easycontrol_app, repository_docs | server-jar-sync-fingerprint#D001 | ✅完成 |
 | 202603121301 | surfacecontrol-display-fallback | implementation | easycontrol_server, repository_docs | surfacecontrol-display-fallback#D001 | ✅完成 |
 | 202603121200 | runtime-log-view | implementation | easycontrol_app, repository_docs | runtime-log-view#D001 | ✅完成 |
@@ -22,6 +23,7 @@
 ## 按月归档
 
 ### 2026-03
+- [202603130854_sdk-35-upgrade](./2026-03/202603130854_sdk-35-upgrade/) - 升级到 AGP 8.6.1 + Gradle 8.7，并将 app/server 的 compileSdk/targetSdk 提升到 35
 - [202603121316_server-jar-sync-fingerprint](./2026-03/202603121316_server-jar-sync-fingerprint/) - 修复同 versionCode 下 release 包继续复用旧被控端 server.jar，改为按 server 载荷 CRC 自动重推
 - [202603121301_surfacecontrol-display-fallback](./2026-03/202603121301_surfacecontrol-display-fallback/) - 修复部分 Android 15 / 厂商 ROM 上 `SurfaceControl.createDisplay(String, boolean)` 缺失导致的 server 启动后断开
 - [202603121200_runtime-log-view](./2026-03/202603121200_runtime-log-view/) - 新增应用内运行日志查看界面，并把关键运行日志保存在进程内存中

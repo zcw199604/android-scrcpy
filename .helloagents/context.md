@@ -15,16 +15,16 @@
 语言: Java, XML, AIDL, Gradle（Groovy DSL）
 框架: Android SDK, ViewBinding, USB Host, MediaCodec/AIDL
 包管理器: Gradle Wrapper
-构建工具: Android Gradle Plugin 8.2.2 + Gradle 8.2
+构建工具: Android Gradle Plugin 8.6.1 + Gradle 8.7
 ```
 
 ### 主要依赖
 | 依赖 | 版本 | 用途 |
 |------|------|------|
-| Android SDK | compileSdk/targetSdk 34 | Android 应用、系统服务与媒体/输入能力 |
+| Android SDK | compileSdk/targetSdk 35 | Android 应用、系统服务与媒体/输入能力 |
 | Java | sourceCompatibility/targetCompatibility 1.8 | 主体业务与协议实现 |
 | AIDL | 内置 Android 机制 | server 模块跨进程/系统接口声明 |
-| Gradle Wrapper | 8.2 | 多模块构建与打包 |
+| Gradle Wrapper | 8.7 | 多模块构建与打包 |
 | 第三方库 | 未检测到显式声明 | 当前仓库主要依赖 Android/Java 标准能力 |
 
 ## 3. 项目概述
@@ -83,7 +83,7 @@
 |------|------|------|
 | `server` 模块产物需要通过 `:server:copyDebug` 或 `:server:copyRelease` 先复制为 `app/src/main/res/raw/easycontrol_server.jar` | Android 主控端依赖内嵌 server 载荷运行被控端逻辑，`ClientStream` 会读取 `R.raw.easycontrol_server` | `easycontrol/server/build.gradle`, `easycontrol/app/src/main/java/.../ClientStream.java` |
 | 当前执行环境已在仓库内补齐本地 JDK 17 与 Android SDK | `easycontrol/gradlew` 会自动回退到 `.local-jdks/current`，`easycontrol/local.properties` 已固定 `sdk.dir=/mnt/android-scrcpy/.android-sdk`，当前 `:server:compileDebugJavaWithJavac` 与 `:app:assembleDebug` 已可执行 | 本次任务执行环境检测，`easycontrol/gradlew`, `easycontrol/local.properties`, `./gradlew :server:compileDebugJavaWithJavac`, `./gradlew :app:assembleDebug` |
-| `app` 与 `server` 仍通过复制 raw 资源共享内嵌 server 载荷 | `app` 模块已在 `preDebugBuild` / `preReleaseBuild` 显式依赖 `:server:copyDebug` / `:server:copyRelease`，从而保留 `R.raw.easycontrol_server` 打包方式并修复 AGP 8.2 的隐式依赖校验；`ClientStream` 现会按 `versionCode + server载荷CRC` 生成被控端文件名，避免同版本号下继续复用旧 server.jar | `easycontrol/app/build.gradle`, `easycontrol/server/build.gradle`, `ClientStream.java` |
+| `app` 与 `server` 仍通过复制 raw 资源共享内嵌 server 载荷 | `app` 模块已在 `preDebugBuild` / `preReleaseBuild` 显式依赖 `:server:copyDebug` / `:server:copyRelease`，从而保留 `R.raw.easycontrol_server` 打包方式，并继续满足 AGP 8.6.1 / API 35 构建链路下的显式任务依赖校验；`ClientStream` 现会按 `versionCode + server载荷CRC` 生成被控端文件名，避免同版本号下继续复用旧 server.jar | `easycontrol/app/build.gradle`, `easycontrol/server/build.gradle`, `ClientStream.java` |
 | GitHub tag release 发布链路需要沿用 release 构建顺序并提供签名配置 | 发布场景应先执行 `:server:copyRelease`，再执行 `:app:assembleRelease`；`app` release 需通过 `EC_RELEASE_*` 参数完成签名，workflow 对应依赖 GitHub Secrets，且 GitHub Release 只公开发布 app APK | `.github/workflows/android-release.yml`, `README.md`, `easycontrol/app/build.gradle`, `easycontrol/server/build.gradle` |
 | 当前 Gradle 构建仅包含 `:app` 与 `:server` | `:cloud` 已不在当前构建中，历史 cloud/激活能力不应视为当前源码依赖 | `easycontrol/settings.gradle`, `modules/cloud.md` |
 
@@ -114,4 +114,4 @@
   - 当前环境无真机 / ADB 设备，无法完成投屏、触控、音频、剪贴板、分辨率切换回归
 ```
 
-> 当前本地构建环境已补齐 JDK 17 与 Android SDK，debug 构建链路验证通过；剩余阻断是真机回归环境。
+> 当前本地构建环境已补齐 JDK 17 与 Android SDK 35，且已在 AGP 8.6.1 + Gradle 8.7 + compileSdk/targetSdk 35 组合下验证 `./gradlew :app:assembleDebug` 通过；剩余阻断是真机回归环境。

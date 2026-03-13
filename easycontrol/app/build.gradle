@@ -1,5 +1,5 @@
 plugins {
-  id 'com.android.application' version '8.2.2'
+  id 'com.android.application' version '8.6.1'
 }
 
 def normalizeReleaseSigningValue = { value ->
@@ -76,12 +76,12 @@ def validateReleaseSigningConfig = {
 
 android {
   namespace 'top.zcw.control.app'
-  compileSdk 34
+  compileSdk 35
 
   defaultConfig {
     applicationId "top.zcw.control.app"
     minSdk 21
-    targetSdk 34
+    targetSdk 35
     versionCode 10000
     versionName "1.0.0"
     ndk {
@@ -100,8 +100,9 @@ android {
     }
   }
 
-  viewBinding {
-    enabled = true
+  buildFeatures {
+    viewBinding true
+    buildConfig true
   }
 
   buildTypes {
