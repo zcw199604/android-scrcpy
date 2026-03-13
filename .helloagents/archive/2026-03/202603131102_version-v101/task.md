@@ -6,4 +6,4 @@
 - [√] 2. 更新 app 安装版本到 `versionCode 10001` / `versionName 1.0.1`
 - [√] 3. 同步更新知识库与归档索引
 - [√] 4. 执行构建与 APK 版本校验
-- [ ] 5. 提交、推送并创建 annotated tag `v1.0.1`
+- [√] 5. 提交、推送并创建 annotated tag `v1.0.1`

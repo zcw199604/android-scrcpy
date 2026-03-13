@@ -6,6 +6,7 @@
 
 | 时间戳 | 名称 | 类型 | 涉及模块 | 决策 | 结果 |
 |--------|------|------|---------|------|------|
+| 202603131415 | version-v102 | implementation | easycontrol_app, repository_docs | version-v102#D001 | ✅完成 |
 | 202603131411 | update-project-links | implementation | easycontrol_app, repository_docs | update-project-links#D001 | ✅完成 |
 | 202603131102 | version-v101 | implementation | easycontrol_app, repository_docs | version-v101#D001 | ✅完成 |
 | 202603130923 | adb-key-backup-and-selection | implementation | easycontrol_app, repository_docs | adb-key-backup-and-selection#D001 | ✅完成 |
@@ -26,6 +27,7 @@
 ## 按月归档
 
 ### 2026-03
+- [202603131415_version-v102](./2026-03/202603131415_version-v102/) - 将 app 安装版本提升到 1.0.2，并创建发布 tag `v1.0.2`
 - [202603131411_update-project-links](./2026-03/202603131411_update-project-links/) - 将设置页“关于”中的旧仓库链接切换到当前 GitHub 项目页面
 - [202603131102_version-v101](./2026-03/202603131102_version-v101/) - 将 app 安装版本提升到 1.0.1，并创建发布 tag `v1.0.1`
 - [202603130923_adb-key-backup-and-selection](./2026-03/202603130923_adb-key-backup-and-selection/) - 为默认 ADB 密钥补充 SharedPreferences 持久化与设备级“使用软件独立密钥”开关
