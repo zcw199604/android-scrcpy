@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### 版本
+- **[easycontrol_app]**: 将 Android 安装版本提升到 `versionCode 10001` / `versionName 1.0.1`，并发布 Git annotated tag `v1.0.1`，使安装版本与发布标签保持一致 — by zcw
+  - 方案: [202603131102_version-v101](archive/2026-03/202603131102_version-v101/)
+  - 验证: `./gradlew :app:assembleDebug`、`aapt dump badging`、`git push origin v1.0.1`
+
 ### 连接认证
 - **[easycontrol_app]**: 新增默认 ADB 密钥与软件独立密钥双轨策略；默认密钥优先从 `SharedPreferences` 读取并兼容旧文件迁移，设备可通过“使用软件独立密钥”切换到 app 私有密钥；同时开启 `allowBackup` 以为系统备份恢复默认密钥提供前提 — by zcw
   - 方案: [202603130923_adb-key-backup-and-selection](archive/2026-03/202603130923_adb-key-backup-and-selection/)
@@ -85,6 +90,6 @@
   - 决策: remove_activation_logic#D001(直接删除激活模块并开放入口)
 
 ## 基线版本
-- `easycontrol/app`: `versionCode 10507` / `versionName 1.5.7`
+- `easycontrol/app`: `versionCode 10001` / `versionName 1.0.1`
 - `easycontrol/server`: `versionCode 20000` / `versionName 2.0.0`
-- 当前知识库已累计归档 14 个 HelloAGENTS 方案包（见 `archive/_index.md`）。
+- 当前知识库已累计归档 15 个 HelloAGENTS 方案包（见 `archive/_index.md`）。

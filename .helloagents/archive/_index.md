@@ -6,6 +6,7 @@
 
 | 时间戳 | 名称 | 类型 | 涉及模块 | 决策 | 结果 |
 |--------|------|------|---------|------|------|
+| 202603131102 | version-v101 | implementation | easycontrol_app, repository_docs | version-v101#D001 | ✅完成 |
 | 202603130923 | adb-key-backup-and-selection | implementation | easycontrol_app, repository_docs | adb-key-backup-and-selection#D001 | ✅完成 |
 | 202603130854 | sdk-35-upgrade | implementation | easycontrol_app, easycontrol_server, repository_docs | sdk-35-upgrade#D001 | ✅完成 |
 | 202603121316 | server-jar-sync-fingerprint | implementation | easycontrol_app, repository_docs | server-jar-sync-fingerprint#D001 | ✅完成 |
@@ -24,6 +25,7 @@
 ## 按月归档
 
 ### 2026-03
+- [202603131102_version-v101](./2026-03/202603131102_version-v101/) - 将 app 安装版本提升到 1.0.1，并创建发布 tag `v1.0.1`
 - [202603130923_adb-key-backup-and-selection](./2026-03/202603130923_adb-key-backup-and-selection/) - 为默认 ADB 密钥补充 SharedPreferences 持久化与设备级“使用软件独立密钥”开关
 - [202603130854_sdk-35-upgrade](./2026-03/202603130854_sdk-35-upgrade/) - 升级到 AGP 8.6.1 + Gradle 8.7，并将 app/server 的 compileSdk/targetSdk 提升到 35
 - [202603121316_server-jar-sync-fingerprint](./2026-03/202603121316_server-jar-sync-fingerprint/) - 修复同 versionCode 下 release 包继续复用旧被控端 server.jar，改为按 server 载荷 CRC 自动重推
