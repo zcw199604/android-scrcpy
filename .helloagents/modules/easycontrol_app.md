@@ -71,6 +71,7 @@ Android 主控端应用模块，负责设备列表管理、USB/网络 ADB 连接
 - 控制通道后台 `keepAlive` 失败导致断开时，客户端现仅提示“连接断开”，不再把内部动作名 `keepAlive` 暴露给用户。
 - 网络设备的“连接时操作”现新增“强制走 ADB 转发”开关；启用后会跳过 direct socket，直接通过 ADB forward 建立 main/video 双通道，便于规避部分无线局域网直连不稳定问题。
 - `AppData` 现同时维护默认 ADB 密钥与软件独立密钥：默认密钥优先从 `SharedPreferences(adb_key)` 读取并兼容旧文件迁移；设备详情页新增“使用软件独立密钥”开关，可按设备切换连接所用密钥；设置页的“自定义密钥 / 重置密钥”则作用于软件独立密钥。
+- 设置页“关于”区的“项目主页 / 隐私政策 / 版本”链接现已改为打开当前 GitHub 仓库 `https://github.com/zcw199604/android-scrcpy`、其 `PRIVACY.md` 和 `releases/latest` 页面，不再跳转旧 Gitee 地址。
 
 ### 当前阻断
 - 仓库内 JDK 17 + Android SDK 35 已补齐，且已在 AGP 8.6.1 + Gradle 8.7 + compileSdk/targetSdk 35 组合下验证 `./gradlew :app:assembleDebug` 可自动触发 `:server:copyDebug` 并完成联合构建；当前剩余阻断是真机播放/控制回归环境不足。

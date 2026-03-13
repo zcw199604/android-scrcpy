@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### 链接修正
+- **[easycontrol_app]**: 将设置页“关于”中的项目主页、隐私政策和版本跳转链接从旧 Gitee 仓库改为当前 GitHub 项目 `zcw199604/android-scrcpy`，避免用户跳到过时仓库页面 — by zcw
+  - 类型: 轻量迭代
+  - 验证: `./gradlew :app:assembleDebug` 已通过
+
 ### 版本
 - **[easycontrol_app]**: 将 Android 安装版本提升到 `versionCode 10001` / `versionName 1.0.1`，并发布 Git annotated tag `v1.0.1`，使安装版本与发布标签保持一致 — by zcw
   - 方案: [202603131102_version-v101](archive/2026-03/202603131102_version-v101/)
@@ -92,4 +97,4 @@
 ## 基线版本
 - `easycontrol/app`: `versionCode 10001` / `versionName 1.0.1`
 - `easycontrol/server`: `versionCode 20000` / `versionName 2.0.0`
-- 当前知识库已累计归档 15 个 HelloAGENTS 方案包（见 `archive/_index.md`）。
+- 当前知识库已累计归档 16 个 HelloAGENTS 方案包（见 `archive/_index.md`）。
